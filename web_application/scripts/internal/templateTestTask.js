@@ -1,0 +1,78 @@
+const INPUT_TASK_TYPE = 0;
+const SINGLE_CHOOSE_TYPE = 1;
+const MULTI_CHOOSE_TYPE = 2;
+
+class TemplateTestTaskInternal {
+  constructor() {
+    this.type = -1;
+    this.rulesToProductions = {};
+    this.testText = '';
+    this.answerScript = '';
+  }
+
+  setType(typeCode) {
+    if (typeCode !== INPUT_TASK_TYPE && typeCode !== SINGLE_CHOOSE_TYPE && typeCode !== MULTI_CHOOSE_TYPE) {
+      throw new Error('TemplateTestTaskInternal:setType incorrect type code.');
+    }
+
+    this.type = typeCode;
+  }
+
+  addRule(ruleName) {
+    if (!/^[0-9a-zA-Z]+$/.test(ruleName)) {
+      throw new Error('TemplateTestTaskInternal:addRule incorrect rule name.');
+    }
+
+    this.rulesToProductions[ruleName] = [];
+  }
+
+  removeRule(ruleName) {
+    if (!(ruleName in this.rulesToProductions)) {
+      throw new Error('TemplateTestTaskInternal:removeRule rule name not found.');
+    }
+
+    delete this.rulesToProductions[ruleName];
+  }
+
+  addProductionRule(ruleName, production) {
+    if (!(ruleName in this.rulesToProductions)) {
+      throw new Error('TemplateTestTaskInternal:addProductionRule rule name not found.');
+    }
+    if (!/^([^$]|\$\$|\$[a-zA-Z]+)*$/.test(production)) {
+      throw new Error('TemplateTestTaskInternal:addProductionRule production has syntax error.');
+    }
+
+    this.rulesToProductions[ruleName].push(production);
+  }
+
+  removeProductionRule(ruleName, productionIndex) {
+    if (!(ruleName in this.rulesToProductions)) {
+      throw new Error('TemplateTestTaskInternal:removeProductionRule rule name not found.');
+    }
+    if (productionIndex < 0 || productionIndex >= this.rulesToProductions[ruleName].length) {
+      throw new Error('TemplateTestTaskInternal:removeProductionRule bad index.')
+    }
+
+    this.rulesToProductions[ruleName].splice(productionIndex, 1);
+  }
+
+  setTestText(testText) {
+    let ruleNames = '';
+    for (let rule in this.rulesToProductions) {
+      ruleNames += rule + '|'
+    }
+    ruleNames = ruleNames.substr(0, ruleNames.length - 1);
+
+    let checkRegExpPattern = '^([^$]|\\$\\$|\\$\\{(' + ruleNames + ')\\}+)*$';
+    let checkRegExp = new RegExp(checkRegExpPattern);
+    if (!checkRegExp.test(testText)) {
+      throw new Error('TemplateTestTaskInternal:setTestText test text has syntax error.')
+    }
+
+    this.testText = testText;
+  }
+
+  setAnswerScript(answerScript) {
+    this.answerScript = answerScript;
+  }
+}
