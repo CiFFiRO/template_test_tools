@@ -22,8 +22,29 @@ class TemplateTestTaskInternal {
     if (!/^[0-9a-zA-Z]+$/.test(ruleName)) {
       throw new Error('TemplateTestTaskInternal:addRule incorrect rule name.');
     }
+    if (ruleName in this.rulesToProductions) {
+      throw new Error('TemplateTestTaskInternal:addRule rule name already use.');
+    }
 
     this.rulesToProductions[ruleName] = [];
+  }
+
+  renameRule(oldRuleName, newRuleName) {
+    if (oldRuleName === newRuleName) {
+      return;
+    }
+    if (!/^[0-9a-zA-Z]+$/.test(newRuleName)) {
+      throw new Error('TemplateTestTaskInternal:renameRule incorrect new rule name.');
+    }
+    if (newRuleName in this.rulesToProductions) {
+      throw new Error('TemplateTestTaskInternal:renameRule new rule name already use.');
+    }
+    if (!(oldRuleName in this.rulesToProductions)) {
+      throw new Error('TemplateTestTaskInternal:addRule old rule name not found.');
+    }
+
+    this.rulesToProductions[newRuleName] = this.rulesToProductions[oldRuleName];
+    delete this.rulesToProductions[oldRuleName];
   }
 
   removeRule(ruleName) {
@@ -43,6 +64,22 @@ class TemplateTestTaskInternal {
     }
 
     this.rulesToProductions[ruleName].push(production);
+
+    return this.rulesToProductions[ruleName].length;
+  }
+
+  changeProductionRule(ruleName, production, productionIndex) {
+    if (!(ruleName in this.rulesToProductions)) {
+      throw new Error('TemplateTestTaskInternal:changeProductionRule rule name not found.');
+    }
+    if (!/^([^$]|\$\$|\$[a-zA-Z]+)*$/.test(production)) {
+      throw new Error('TemplateTestTaskInternal:changeProductionRule production has syntax error.');
+    }
+    if (productionIndex < 0 || productionIndex >= this.rulesToProductions[ruleName].length) {
+      throw new Error('TemplateTestTaskInternal:changeProductionRule bad index.')
+    }
+
+    this.rulesToProductions[ruleName][productionIndex] = production;
   }
 
   removeProductionRule(ruleName, productionIndex) {

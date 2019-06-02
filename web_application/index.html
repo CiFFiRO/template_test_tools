@@ -2,13 +2,24 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <link href="external/bootstrap-3.3.7/css/bootstrap.css" rel="stylesheet" type="text/css">
+  <link href="external/bootstrap-select.css" rel="stylesheet" type="text/css">
+  <script type="text/javascript" src="external/jquery-3.3.1.js"></script>
+  <script type="text/javascript" src="external/bootstrap-3.3.7/js/bootstrap.js"></script>
+  <script type="text/javascript" src="external/bootstrap-select.js"></script>
   <script type="text/javascript" src="scripts/internal/templateTestTask.js"></script>
+  <script type="text/javascript" src="scripts/view/templateTestTask.js"></script>
+  <script type="text/javascript" src="scripts/common.js"></script>
   <script type="text/javascript">
-
+    $(document).ready(function () {
+      window.debugStatus = true;
+      window.templateTestView = new TemplateTestTaskView();
+      window.templateTestView.initialize('templateTestTaskEditor');
+    });
   </script>
 </head>
 <body>
-<div id="templateTestTaskEditor">
+<div class="container" id="templateTestTaskEditor">
 </div>
 </body>
 </html>
