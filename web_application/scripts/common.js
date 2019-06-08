@@ -4,7 +4,7 @@ function DEBUG(error) {
   }
 }
 
-function LOG(error) {
-  console.log(error.message);
+function LOG(message) {
+  console.log(message);
 }
 

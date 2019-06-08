@@ -128,7 +128,7 @@ class TemplateTestTaskView {
   changeProduction(ruleId, inputId, id) {
     try {
       let input = $('#'+inputId);
-      this.internal.changeProductionRule(this.lastSuccessRuleNameByRuleId[ruleId], input.val(), this.productionIdToIndexByRuleId[id]);
+      this.internal.changeProductionRule(this.lastSuccessRuleNameByRuleId[ruleId], input.val(), this.productionIdToIndexByRuleId[ruleId][id]);
       input.parent().removeClass('has-error');
     } catch (error) {
       DEBUG(error);
@@ -196,9 +196,13 @@ class TemplateTestTaskView {
       '<h1 class="form-signin-heading" align="left">Скрипт вычисления ответа</h1>' +
       '<div class="input-group"><textarea id="' + this.answerScriptId + '" cols="100" rows="10" class="form-control" placeholder="Скрипт вычисления ответа"></textarea></div>' +
       '</div>');
+    let scriptTag = $('#' + this.answerScriptId);
+    scriptTag.on('input', function () {
+      window.templateTestView.internal.setAnswerScript($(this).val());
+    });
 
     if (data !== undefined) {
-      $('#'+this.answerScriptId).val(data);
+      scriptTag.val(data);
     }
   }
 
@@ -207,11 +211,14 @@ class TemplateTestTaskView {
   }
 
   sendTemplateTestTask() {
-
+    let a = document.createElement("a");
+    let file = new Blob([this.internal.toJson()], {type: 'text/plain'});
+    a.href = URL.createObjectURL(file);
+    a.download = 'TTT.json';
+    a.click();
   }
 
   updateSendButton() {
-    console.log($('.has-error').length);
     if ($('.has-error').length > 0 || $('#' + this.testTypeId).val() === undefined) {
       $('#'+this.sendButtonId).prop('disabled', true);
     } else {

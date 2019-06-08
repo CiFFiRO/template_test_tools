@@ -112,4 +112,14 @@ class TemplateTestTaskInternal {
   setAnswerScript(answerScript) {
     this.answerScript = answerScript;
   }
+
+  toJson() {
+    let json = {};
+    json['type'] = this.type;
+    json['rules'] = this.rulesToProductions;
+    json['testText'] = this.testText;
+    json['answerScript'] = this.answerScript;
+
+    return JSON.stringify(json);
+  }
 }
