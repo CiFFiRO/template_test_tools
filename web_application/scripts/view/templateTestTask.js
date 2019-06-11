@@ -47,7 +47,9 @@ class TemplateTestTaskView {
 
     if (data !== undefined) {
       for (let ruleName in data) {
-        this.addRuleComplete(ruleName, data[ruleName]);
+        if (data.hasOwnProperty(ruleName)) {
+          this.addRuleComplete(ruleName, data[ruleName]);
+        }
       }
     }
   }
@@ -142,8 +144,10 @@ class TemplateTestTaskView {
       let deletedIndex = this.productionIdToIndexByRuleId[ruleId][id];
       this.internal.removeProductionRule(this.lastSuccessRuleNameByRuleId[ruleId], deletedIndex);
       for (let productionId in this.productionIdToIndexByRuleId[ruleId]) {
-        if (this.productionIdToIndexByRuleId[ruleId][productionId] > deletedIndex) {
-          --this.productionIdToIndexByRuleId[ruleId][productionId];
+        if (this.productionIdToIndexByRuleId[ruleId].hasOwnProperty(productionId)) {
+          if (this.productionIdToIndexByRuleId[ruleId][productionId] > deletedIndex) {
+            --this.productionIdToIndexByRuleId[ruleId][productionId];
+          }
         }
       }
       delete this.productionIdToIndexByRuleId[ruleId][id];
