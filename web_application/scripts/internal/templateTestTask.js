@@ -100,7 +100,7 @@ class TemplateTestTaskInternal {
     }
     ruleNames = ruleNames.substr(0, ruleNames.length - 1);
 
-    let checkRegExpPattern = '^([^$]|\\$\\$|\\$\\{(' + ruleNames + ')\\}+)*$';
+    let checkRegExpPattern = '^([^$]|\\$\\$|\\$\\{\\s*(' + ruleNames + ')\\s*\\}+)*$';
     let checkRegExp = new RegExp(checkRegExpPattern);
     if (!checkRegExp.test(testText)) {
       throw new Error('TemplateTestTaskInternal:setTestText test text has syntax error.')
