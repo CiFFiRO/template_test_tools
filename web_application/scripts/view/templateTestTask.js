@@ -223,7 +223,6 @@ class TemplateTestTaskView {
   }
 
   updateSendButton() {
-    LOG($('#' + this.testTypeId).val());
     if ($('.has-error').length > 0 || $('#' + this.testTypeId).val() === '') {
       $('#'+this.sendButtonId).prop('disabled', true);
     } else {
