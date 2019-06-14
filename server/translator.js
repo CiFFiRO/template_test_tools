@@ -10,7 +10,7 @@ const PREGENERATED_ANSWER_SCRIPT_PART = '' +
   '  if (isNaN(+length)) {\n' +
   '    throw Error(\'$$rSubArray: length is not a number\');\n' +
   '  }\n' +
-  '  if (length < 0 || array.length < length) {\n' +
+  '  if (length < 0) {\n' +
   '    throw Error(\'$$rSubArray: length is bad\');\n' +
   '  }\n' +
   '  \n' +
@@ -21,6 +21,9 @@ const PREGENERATED_ANSWER_SCRIPT_PART = '' +
   '  let result = [];\n' +
   '  let copy = array;\n' +
   '  for (let _ = 0;_ < length;++_) {\n' +
+  '    if (copy.length === 0) {\n' +
+  '      break;\n' +
+  '    }\n' +
   '    let i = getRandomInt(0, copy.length);\n' +
   '    result.push(copy[i]);\n' +
   '    copy.splice(i, 1);\n' +
