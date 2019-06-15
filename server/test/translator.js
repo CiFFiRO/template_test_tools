@@ -4,7 +4,7 @@ const translator = require('../translator.js');
 
 function test_positiveTranslator() {
   const prefixTTTFileName = 'server/test/ttt/ttt_';
-  const testNumber = 1;
+  const testNumber = 11;
   for (let i = 0; i < testNumber; ++i) {
     let fileName = prefixTTTFileName;
     if (i<10) {
@@ -22,7 +22,11 @@ function test_positiveTranslator() {
 
       let ttt = JSON.parse(data);
       ASSERT.doesNotThrow(function (){translator.checkTTT(ttt);});
-      ASSERT.doesNotThrow(function (){translator.generateTestTaskFromTTT(ttt);});
+      ASSERT.doesNotThrow(function (){
+        //console.log(fileName);
+        let tt = translator.generateTestTaskFromTTT(ttt);
+        //console.log(tt);
+      });
     });
   }
 }
