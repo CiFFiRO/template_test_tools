@@ -19,7 +19,7 @@ const PREGENERATED_ANSWER_SCRIPT_PART = '' +
   '  }\n' +
   '  \n' +
   '  let result = [];\n' +
-  '  let copy = array;\n' +
+  '  let copy = array.slice(0);\n' +
   '  for (let _ = 0;_ < length;++_) {\n' +
   '    if (copy.length === 0) {\n' +
   '      break;\n' +
@@ -254,6 +254,8 @@ module.exports = {
         }
       }
 
+      result = result.replace(/\$\$/g, '$');
+
       return result;
     }
 
@@ -263,7 +265,7 @@ module.exports = {
     for (let rule in ttt['rules']) {
       if (ttt['rules'].hasOwnProperty(rule)) {
         generatedAnswerScriptPart += 'let $' + rule + ' = ' + selectedProductionForRules[rule] + ';\n';
-        generatedAnswerScriptPart += 'let $' + rule + '_value = "' + valueForRules[rule] + '";\n';
+        generatedAnswerScriptPart += 'let $' + rule + '_value = "' + valueForRules[rule].replace(/\n/g, '\\n') + '";\n';
         for (let i=0;i<ttt['rules'][rule].length;++i) {
           generatedAnswerScriptPart += 'let $' + rule + '_' + i + ' = ' + i + ';\n';
         }
@@ -292,6 +294,15 @@ module.exports = {
       result['answer'] = value;
     } else {
       result['trueOption'] = value[0];
+
+      for (let i=0;i<value[0].length;++i) {
+        if (value[1].findIndex(function (elem) {
+          return elem === value[0][i];
+          }) !== -1) {
+          throw Error('False options contain true option');
+        }
+      }
+
       result['falseOption'] = value[1];
     }
 
