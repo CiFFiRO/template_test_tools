@@ -4,7 +4,7 @@ const translator = require('../translator.js');
 
 function test_positiveTranslator() {
   const prefixTTTFileName = 'server/test/ttt/ttt_';
-  const testNumber = 11;
+  const testNumber = 19;
   for (let i = 0; i < testNumber; ++i) {
     let fileName = prefixTTTFileName;
     if (i<10) {
@@ -32,7 +32,9 @@ function test_positiveTranslator() {
 }
 
 function run() {
-  test_positiveTranslator();
+  for (let i=0;i<1000;++i) {
+    test_positiveTranslator();
+  }
 }
 
 
