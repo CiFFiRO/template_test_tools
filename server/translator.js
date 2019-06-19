@@ -155,7 +155,7 @@ module.exports = {
 
             let arguments = [];
             while (i < production.length && production[i] !== ')') {
-              if (production[i] !== ')' && production[i] !== ',' && !isSpace(production[i])) {
+              if (production[i] !== '(' && production[i] !== ')' && production[i] !== ',' && !isSpace(production[i])) {
                 let argument = '';
                 while (production[i] !== ')' && production[i] !== ',' && !isSpace(production[i])) {
                   argument += production[i];
