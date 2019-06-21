@@ -4,7 +4,7 @@ const SPECIAL_FUNCTIONS_RE = 'rInteger\\(\\s*[+-]?[0-9]+\\s*,\\s*[+-]?[0-9]+\\s*
   'rElement\\(\\s*(\\s*[a-zA-Z0-9]+\\s*,)*\\s*[a-zA-Z0-9]+\\s*\\)';
 const PREGENERATED_ANSWER_SCRIPT_PART = '' +
   'let __FALSE_OPTIONS = [];' +
-  'let __ANSWER = null;' +
+  'let __ANSWER = -1;' +
   '' +
   'function $$rSubArray(array, length) {\n' +
   '  if (isNaN(+length)) {\n' +
@@ -34,19 +34,23 @@ const PREGENERATED_ANSWER_SCRIPT_PART = '' +
   '' +
   'function $$FalseOptionsIs(falseOptions) {\n' +
   '  __FALSE_OPTIONS = falseOptions;\n' +
-  '}' +
+  '}\n' +
   '' +
-  'function $$AnswerIs(answer) {\n' +
-  '  __ANSWER = answer;\n' +
-  '}' +
+  '  function $$AnswerIs(answer) {\n' +
+  '    if (typeof answer !== \'object\') {\n' +
+  '      __ANSWER = [answer];\n' +
+  '    } else {\n' +
+  '      __ANSWER = answer;\n' +
+  '    }\n' +
+  '  }\n' +
   '' +
   'function __END_SCRIPT() {\n' +
-  '  if (__TYPE_TEST_TASK === 0) {\n' +
-  '    return __ANSWER;\n' +
-  '  } \n' +
-  '  \n' +
   '  return [__ANSWER, __FALSE_OPTIONS];\n' +
   '}';
+const INPUT_TYPE = 0;
+const SINGLE_CHOOSE_TYPE = 1;
+const MULTIPLE_CHOOSE_TYPE = 2;
+
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
@@ -259,7 +263,36 @@ module.exports = {
       return result;
     }
 
-    result['testText'] = replaceRules(ttt['testText']);
+    function removeEmptyStrings(text) {
+      let lines = text.split('\n');
+      let result = '';
+
+      for (let lineIndex = 0; lineIndex < lines.length; ++lineIndex) {
+        if (lines[lineIndex].length > 0) {
+          result += lines[lineIndex] + '\n';
+        }
+      }
+
+      return result;
+    }
+
+    function replaceSpecialSymbolsGIFT(text) {
+      let result = text;
+      let specialCharacters = ['~', '=', '#', '{', '}', ':'];
+      for (let i=0;i<specialCharacters.length;++i) {
+        let regexp = new RegExp(specialCharacters[i], 'g');
+        result = result.replace(regexp, '\\'+specialCharacters[i]);
+      }
+
+      return result;
+    }
+
+    let testText = replaceSpecialSymbolsGIFT(removeEmptyStrings(replaceRules(ttt['testText'])));
+    if (testText.length === 0) {
+      throw Error('Test task text is empty');
+    }
+    
+    result['testText'] = testText;
 
     let generatedAnswerScriptPart = 'let __TYPE_TEST_TASK = ' + ttt['type'] + ';\n';
     for (let rule in ttt['rules']) {
@@ -280,30 +313,102 @@ module.exports = {
       throw Error('Answer script error: ' + error.message);
     }
 
-    if (ttt['type'] === 0 && typeof value !== 'string' && typeof value !== 'number') {
-      throw Error('Wrong answer type - ' + typeof value);
+    let answer = value[0];
+    let falseOptions = value[1];
+
+    if (typeof answer !== 'object') {
+      throw Error('Answer does not initialized');
     }
-    if (ttt['type'] === 1 && value[0].length !== 1) {
-      throw Error('Wrong true answers number');
-    }
-    if (ttt['type'] === 2 && value[0].length < 1) {
+    if (answer.length < 1) {
       throw Error('Wrong true answers number');
     }
 
-    if (ttt['type'] === 0) {
-      result['answer'] = value;
+    answer.forEach(function (elem) {
+      let type = typeof elem;
+      if (type !== 'string' && type !== 'number') {
+        throw Error('Wrong true option type');
+      }
+    });
+    falseOptions.forEach(function (elem) {
+      let type = typeof elem;
+      if (type !== 'string' && type !== 'number') {
+        throw Error('Wrong false option type');
+      }
+    });
+
+    if (ttt['type'] === SINGLE_CHOOSE_TYPE && answer.length > 1) {
+      throw Error('Multiple answer options');
+    }
+
+    if (ttt['type'] === INPUT_TYPE) {
+      result['answers'] = answer;
     } else {
-      result['trueOption'] = value[0];
+      result['trueOptions'] = answer;
 
-      for (let i=0;i<value[0].length;++i) {
-        if (value[1].findIndex(function (elem) {
-          return elem === value[0][i];
-          }) !== -1) {
+      for (let i=0;i<answer.length;++i) {
+        if (falseOptions.indexOf(answer[i]) !== -1) {
           throw Error('False options contain true option');
         }
       }
 
-      result['falseOption'] = value[1];
+      result['falseOptions'] = falseOptions;
+    }
+
+    return result;
+  },
+  translateTestToGIFT: function (test) {
+    let date = new Date(Date.now());
+    let preamble = '// generated date: ' + date.toString();
+    let space = '//--------------------------------------------------';
+    let result = preamble + '\n\n\n';
+
+    function getOptions(trueOptions, falseOptions) {
+      function rSubArray(array, length) {
+        let result = [];
+        let copy = array.slice(0);
+        for (let _ = 0;_ < length;++_) {
+          if (copy.length === 0) {
+            break;
+          }
+          let i = getRandomInt(0, copy.length);
+          result.push(copy[i]);
+          copy.splice(i, 1);
+        }
+        return result;
+      }
+
+      let result = [];
+      for (let i=0;i<trueOptions.length;++i) {
+        result.push([true, trueOptions[i]]);
+      }
+      for (let i=0;i<falseOptions.length;++i) {
+        result.push([false, falseOptions[i]]);
+      }
+
+      return rSubArray(result, result.length);
+    }
+
+    for (let testIndex = 0; testIndex < test.length; ++testIndex) {
+      //console.log('wtf');
+      //console.log(test[testIndex]);
+      result += test[testIndex]['testText'] + '{\n';
+      if (test[testIndex]['type'] === INPUT_TYPE) {
+        for (let optionIndex = 0; optionIndex < test[testIndex]['answers'].length; ++optionIndex) {
+          result += '=' + test[testIndex]['answers'][optionIndex] + '\n';
+        }
+      } else {
+        let options = getOptions(test[testIndex]['trueOptions'], test[testIndex]['falseOptions']);
+        for (let optionIndex = 0; optionIndex < options.length; ++optionIndex) {
+          if (options[optionIndex][0]) {
+            result += '=';
+          } else {
+            result += '~';
+          }
+          result += options[optionIndex][1] + '\n';
+        }
+      }
+      result += '}\n';
+      result += '\n' + space + '\n';
     }
 
     return result;
