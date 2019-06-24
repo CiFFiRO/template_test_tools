@@ -6,6 +6,7 @@ class TemplateTestTaskView {
     this.ruleIdPrefix = 'ruleId_';
     this.ruleInputIdPrefix = 'ruleInputId_';
     this.productionAddIdPrefix = 'buttonProductionAdd_';
+    this.productionRemoveIdPrefix = 'buttonProductionRemove_';
     this.productionIdPrefix = 'productionId_';
     this.productionInputIdPrefix = 'productionInputId_';
     this.testTextId = 'testTextId';
@@ -17,12 +18,14 @@ class TemplateTestTaskView {
     this.loadButtonId = 'loadTTTButton';
     this.tagContainId = null;
     this.codeMirror = null;
+    this.ruleRemoveIdPrefix = 'ruleRemoveIdPrefix_';
+    this.addRuleButtomId = 'addRuleButtomId';
   }
 
   initializeTestType(tagId, data) {
     $('#'+tagId).append('<div>' +
       '<h1 class="form-signin-heading" align="left">Тип шаблона тестового задания</h1>' +
-      '<select title="Тип ШТЗ" class="selectpicker" onchange="window.templateTestView.changeTestType()" id="'+ this.testTypeId + '">' +
+      '<select title="Тип ШТЗ" class="selectpicker" id="'+ this.testTypeId + '">' +
       '<option value="0">Самостоятельный ввод ответа</option>' +
       '<option value="1">Единственный выбор</option>' +
       '<option value="2">Множество выборов</option>' +
@@ -30,8 +33,8 @@ class TemplateTestTaskView {
     $('select').selectpicker();
     let typeSelect = $('#' + this.testTypeId);
     typeSelect.on('input change', function() {
-      window.templateTestView.changeTestType();
-    });
+      this.changeTestType();
+    }.bind(this));
     if (data !== undefined) {
       typeSelect.val(data['type']);
       typeSelect.change();
@@ -51,7 +54,10 @@ class TemplateTestTaskView {
     let tag = $('#'+tagId);
     tag.append('<div id="' + this.ruleHeadId + '"><ul class="list-inline">' +
       '<li><h1 class="form-signin-heading" align="center">Правила и продукции</h1></li>' +
-      '<li><button type="button" class="btn btn-success" onclick="window.templateTestView.addRule();"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></button></li></ul></div>');
+      '<li><button id="' + this.addRuleButtomId + '" type="button" class="btn btn-success"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></button></li></ul></div>');
+    $('#' + this.addRuleButtomId).on('click', function() {
+      this.addRule();
+    }.bind(this));
 
     if (data !== undefined) {
       for (let ruleName in data['rules']) {
@@ -73,12 +79,18 @@ class TemplateTestTaskView {
     $('#' + this.ruleHeadId).append('<div id="' + ruleId + '">' +
       '<ul class="list-inline">' +
       '<li><div class="input-group"><input id="' + ruleInputId + '" type="text" class="form-control" placeholder="Имя правила"></div></li>' +
-      '<li><button id="' + this.productionAddIdPrefix + ruleId + '" type="button" class="btn btn-success" disabled onclick="window.templateTestView.addProduction(\'' + ruleId + '\');"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></button></li>' +
-      '<li><button type="button" class="btn btn-danger" onclick="window.templateTestView.removeRule(\'' + ruleId + '\');"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button></li>' +
+      '<li><button id="' + this.productionAddIdPrefix + ruleId + '" type="button" class="btn btn-success" disabled><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></button></li>' +
+      '<li><button id="' + this.ruleRemoveIdPrefix + ruleId + '" type="button" class="btn btn-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button></li>' +
       '</ul></div>');
+    $('#' + this.productionAddIdPrefix + ruleId).on('click', function() {
+      this.addProduction(ruleId);
+    }.bind(this));
+    $('#' + this.ruleRemoveIdPrefix + ruleId).on('click', function() {
+      this.removeRule(ruleId);
+    }.bind(this));
     $('#' + ruleInputId).on('input change', function() {
-      window.templateTestView.renameRule(ruleId, ruleInputId);
-    });
+      this.renameRule(ruleId, ruleInputId);
+    }.bind(this));
 
     return [ruleId, ruleInputId];
   }
@@ -126,11 +138,14 @@ class TemplateTestTaskView {
     $('#' + ruleId).append('<div id="' + productionId + '">' +
       '<ul class="list-inline">' +
       '<li><div class="input-group"><textarea id="' + productionInputId + '" cols="40" rows="3" class="form-control" placeholder="Текст продукции"></textarea></div></li>' +
-      '<li><button type="button" class="btn btn-danger" onclick="window.templateTestView.removeProduction(\'' + ruleId + '\', \'' + productionId + '\');"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button></li>' +
+      '<li><button id="' + this.productionRemoveIdPrefix + productionId + '" type="button" class="btn btn-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button></li>' +
       '</ul></div>');
+    $('#' + this.productionRemoveIdPrefix + productionId).on('click', function () {
+      this.removeProduction(ruleId, productionId);
+    }.bind(this));
     $('#'+productionInputId).on('input change', function () {
-      window.templateTestView.changeProduction(ruleId, productionInputId, productionId);
-    });
+      this.changeProduction(ruleId, productionInputId, productionId);
+    }.bind(this));
 
     return [productionId, productionInputId];
   }
@@ -186,8 +201,8 @@ class TemplateTestTaskView {
       '</div>');
     let textTag = $('#' + this.testTextId);
     textTag.on('input change', function () {
-      window.templateTestView.changeTestText();
-    });
+      this.changeTestText();
+    }.bind(this));
 
     if (data !== undefined) {
       textTag.val(data['testText']);
@@ -222,8 +237,8 @@ class TemplateTestTaskView {
     });
     this.codeMirror.setSize(750, 300);
     this.codeMirror.on('change', function (cm, change) {
-      window.templateTestView.internal.setAnswerScript(cm.getValue());
-    });
+      this.internal.setAnswerScript(cm.getValue());
+    }.bind(this));
 
     if (data !== undefined) {
       this.codeMirror.setValue(data['answerScript']);
@@ -233,10 +248,15 @@ class TemplateTestTaskView {
 
   initializeButtonsTTT(tagId) {
     $('#' + tagId).append('<div class="btn-group" role="group" aria-label="...">' +
-      '<button disabled type="button" id="' + this.sendButtonId + '" class="btn btn-primary" onclick="window.templateTestView.saveTTT()"><span class="glyphicon glyphicon-save" aria-hidden="true"></span> Скачать</button>' +
-      '<button type="button" id="' + this.loadButtonId + '" class="btn btn-primary" onclick="window.templateTestView.loadTTT()"><span class="glyphicon glyphicon-upload" aria-hidden="true"></span> Загрузить</button>' +
+      '<button disabled type="button" id="' + this.sendButtonId + '" class="btn btn-primary"><span class="glyphicon glyphicon-save" aria-hidden="true"></span> Скачать</button>' +
+      '<button type="button" id="' + this.loadButtonId + '" class="btn btn-primary"><span class="glyphicon glyphicon-upload" aria-hidden="true"></span> Загрузить</button>' +
       '</div>');
-
+    $('#'+this.sendButtonId).on('click', function () {
+      this.saveTTT();
+    }.bind(this));
+    $('#'+this.loadButtonId).on('click', function () {
+      this.loadTTT();
+    }.bind(this));
   }
 
   saveTTT() {
@@ -257,8 +277,8 @@ class TemplateTestTaskView {
 
   loadTTT() {
     LOAD_FILE(function (ttt) {
-      window.templateTestView.load(JSON.parse(ttt));
-    });
+      this.load(JSON.parse(ttt));
+    }.bind(this));
   }
 
   load(ttt, tagId) {
