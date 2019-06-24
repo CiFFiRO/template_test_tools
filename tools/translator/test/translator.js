@@ -23,7 +23,7 @@ function test_positiveTranslator() {
   }
 
   function getTT(beginIndex, endIndex) {
-    const prefixTTTFileName = 'server/test/ttt/ttt_';
+    const prefixTTTFileName = 'tools/translator/test/ttt/ttt_';
     let tt = [];
     for (let i = beginIndex; i < endIndex; ++i) {
       let fileName = prefixTTTFileName;

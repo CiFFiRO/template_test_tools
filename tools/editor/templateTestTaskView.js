@@ -19,8 +19,17 @@ class TemplateTestTaskView {
     this.ruleRemoveIdPrefix = 'ruleRemoveIdPrefix_';
     this.addRuleButtomId = 'addRuleButtomId';
     this.isCurrectTTT = false;
-    this.callbackUpdate = callbackUpdate;
-    this.callbackDebug = callbackDebug;
+
+    if (callbackUpdate !== undefined) {
+      this.callbackUpdate = callbackUpdate;
+    } else {
+      this.callbackUpdate = function () {};
+    }
+    if (callbackDebug !== undefined) {
+      this.callbackDebug = callbackDebug;
+    } else {
+      this.callbackDebug = function () {};
+    }
   }
 
   setCallbackUpdate(callbackUpdate) {
