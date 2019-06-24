@@ -1,5 +1,5 @@
 class TemplateTestTaskView {
-  constructor() {
+  constructor(callbackUpdate, callbackDebug) {
     this.internal = new TemplateTestTaskInternal();
     this.testTypeId = 'testTypeSelect';
     this.ruleHeadId = 'ruleHead';
@@ -14,12 +14,21 @@ class TemplateTestTaskView {
     this.uniqueNumber = 0;
     this.lastSuccessRuleNameByRuleId = {};
     this.productionIdToIndexByRuleId = {};
-    this.sendButtonId = 'sendTTTButton';
-    this.loadButtonId = 'loadTTTButton';
     this.tagContainId = null;
     this.codeMirror = null;
     this.ruleRemoveIdPrefix = 'ruleRemoveIdPrefix_';
     this.addRuleButtomId = 'addRuleButtomId';
+    this.isCurrectTTT = false;
+    this.callbackUpdate = callbackUpdate;
+    this.callbackDebug = callbackDebug;
+  }
+
+  setCallbackUpdate(callbackUpdate) {
+    this.callbackUpdate = callbackUpdate;
+  }
+  
+  setCallbackDebug(callbackDebug) {
+    this.callbackDebug = callbackDebug;
   }
 
   initializeTestType(tagId, data) {
@@ -45,7 +54,7 @@ class TemplateTestTaskView {
     try {
       this.internal.setType(+$('#' + this.testTypeId).val());
     } catch (error) {
-      DEBUG(error);
+      this.callbackDebug(error);
     }
     this.changeTestText();
   }
@@ -108,7 +117,7 @@ class TemplateTestTaskView {
       input.parent().removeClass('has-error');
       $('#' + this.productionAddIdPrefix + id).prop('disabled', false);
     } catch (error) {
-      DEBUG(error);
+      this.callbackDebug(error);
       $('#'+inputId).parent().addClass('has-error');
     }
     this.changeTestText();
@@ -123,7 +132,7 @@ class TemplateTestTaskView {
       delete this.lastSuccessRuleNameByRuleId[id];
       delete this.productionIdToIndexByRuleId[id];
     } catch (error) {
-      DEBUG(error);
+      this.callbackDebug(error);
     }
     this.changeTestText();
   }
@@ -156,7 +165,7 @@ class TemplateTestTaskView {
       this.internal.changeProductionRule(this.lastSuccessRuleNameByRuleId[ruleId], input.val(), this.productionIdToIndexByRuleId[ruleId][id]);
       input.parent().removeClass('has-error');
     } catch (error) {
-      DEBUG(error);
+      this.callbackDebug(error);
       $('#'+inputId).parent().addClass('has-error');
     }
     this.changeTestText();
@@ -176,7 +185,7 @@ class TemplateTestTaskView {
       delete this.productionIdToIndexByRuleId[ruleId][id];
       $('#'+id).remove();
     } catch (error) {
-      DEBUG(error);
+      this.callbackDebug(error);
     }
   }
 
@@ -216,10 +225,10 @@ class TemplateTestTaskView {
       this.internal.setTestText(tag.val());
       tag.parent().removeClass('has-error');
     } catch (error) {
-      DEBUG(error);
+      this.callbackDebug(error);
       $('#'+this.testTextId).parent().addClass('has-error');
     }
-    this.updateSaveButton();
+    this.update();
   }
 
   initializeAnswerScript(tagId, data) {
@@ -245,40 +254,18 @@ class TemplateTestTaskView {
     }
   }
 
-
-  initializeButtonsTTT(tagId) {
-    $('#' + tagId).append('<div class="btn-group" role="group" aria-label="...">' +
-      '<button disabled type="button" id="' + this.sendButtonId + '" class="btn btn-primary"><span class="glyphicon glyphicon-save" aria-hidden="true"></span> Скачать</button>' +
-      '<button type="button" id="' + this.loadButtonId + '" class="btn btn-primary"><span class="glyphicon glyphicon-upload" aria-hidden="true"></span> Загрузить</button>' +
-      '</div>');
-    $('#'+this.sendButtonId).on('click', function () {
-      this.saveTTT();
-    }.bind(this));
-    $('#'+this.loadButtonId).on('click', function () {
-      this.loadTTT();
-    }.bind(this));
-  }
-
-  saveTTT() {
-    let a = document.createElement("a");
-    let file = new Blob([this.internal.toJson()], {type: 'text/plain'});
-    a.href = URL.createObjectURL(file);
-    a.download = 'TTT.json';
-    a.click();
-  }
-
-  updateSaveButton() {
+  update() {
     if ($('.has-error').length > 0 || $('#' + this.testTypeId).val() === '') {
-      $('#'+this.sendButtonId).prop('disabled', true);
+      this.isCurrectTTT = false;
     } else {
-      $('#'+this.sendButtonId).prop('disabled', false);
+      this.isCurrectTTT = true;
     }
+
+    this.callbackUpdate(this.isCurrectTTT);
   }
 
-  loadTTT() {
-    LOAD_FILE(function (ttt) {
-      this.load(JSON.parse(ttt));
-    }.bind(this));
+  save() {
+    return new Blob([this.internal.toJson()], {type: 'text/plain'});
   }
 
   load(ttt, tagId) {
@@ -292,7 +279,7 @@ class TemplateTestTaskView {
     }
 
     this.initialize(this.tagContainId, ttt);
-    this.updateSaveButton();
+    this.update();
   }
 
   initialize(tagId, data) {
@@ -301,7 +288,5 @@ class TemplateTestTaskView {
     this.initializeRules(tagId, data);
     this.initializeTestText(tagId, data);
     this.initializeAnswerScript(tagId, data);
-    this.initializeButtonsTTT(tagId, data);
   }
-
 }

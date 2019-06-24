@@ -13,14 +13,15 @@
   <script type="text/javascript" src="external/codemirror/javascript.js"></script>
   <script type="text/javascript" src="external/codemirror/active-line.js"></script>
   <script type="text/javascript" src="external/codemirror/matchbrackets.js"></script>
-  <script type="text/javascript" src="scripts/internal/templateTestTask.js"></script>
-  <script type="text/javascript" src="scripts/view/templateTestTask.js"></script>
+  <script type="text/javascript" src="../tools/editor/templateTestTaskInternal.js"></script>
+  <script type="text/javascript" src="../tools/editor/templateTestTaskView.js"></script>
+  <script type="text/javascript" src="scripts/view/templateTestTaskWeb.js"></script>
   <script type="text/javascript" src="scripts/common.js"></script>
   <script type="text/javascript">
     $(document).ready(function () {
       window.debugStatus = true;
-      window.templateTestView = new TemplateTestTaskView();
-      window.templateTestView.initialize('templateTestTaskEditor');
+      window.templateTestViewWeb = new TemplateTestTaskWeb();
+      window.templateTestViewWeb.initialize('templateTestTaskEditor');
     });
   </script>
   <style>
