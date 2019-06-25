@@ -22,9 +22,9 @@ class TemplateTestTaskDesktop {
       return;
     }
 
-    let ttt = JSON.parse(data);
+    let ttt = JSON.parse(data.data);
     this.templateTestView.load(ttt);
-    this.fileName = fileName[0];
+    this.fileName = data.name;
   }
 
   saveTTT(fileName) {

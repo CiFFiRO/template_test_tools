@@ -98,7 +98,6 @@ class TemplateTestView {
             }
           }
         }
-        LOG(this.internal);
       }.bind(this));
     }
   }
@@ -107,8 +106,6 @@ class TemplateTestView {
     this.initializeTitle(data);
     this.initializeOrderType(data);
     this.initializeListTTT(data);
-
-    LOG(this.internal);
   }
 
   load() {
