@@ -3,21 +3,26 @@ const { app, Menu, BrowserWindow } = require('electron');
 let mainWindow = null;
 const menuTemplate = [
   {
-    label: 'Файл',
+    label: 'Меню',
     submenu: [
       {
-        label: 'Создать ШТЗ',
+        label: 'Редактор ШТЗ',
         click: () => {
-          mainWindow.loadURL('file://' + __dirname + '/index.html');
-          mainWindow.webContents.openDevTools();
+          mainWindow.loadURL('file://' + __dirname + '/editorTTT.html');
+          //mainWindow.webContents.openDevTools();
           mainWindow.on('closed', function() {
             mainWindow = null;
           });
         }
       },
       {
-        label: 'Создать ШТ',
+        label: 'Редактор ШТ',
         click: () => {
+          mainWindow.loadURL('file://' + __dirname + '/editorTemplateTest.html');
+          //mainWindow.webContents.openDevTools();
+          mainWindow.on('closed', function() {
+            mainWindow = null;
+          });
         }
       },
       {

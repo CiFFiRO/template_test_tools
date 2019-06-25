@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link href="external/bootstrap-3.3.7/css/bootstrap.css" rel="stylesheet" type="text/css">
+  <link href="external/bootstrap-select.css" rel="stylesheet" type="text/css">
+  <link href="external/codemirror/codemirror.css" rel="stylesheet" type="text/css">
+  <link href="external/codemirror/darcula.css" rel="stylesheet" type="text/css">
+  <script>window.$ = window.jQuery = require('jquery');</script>
+  <script type="text/javascript" src="external/bootstrap-3.3.7/js/bootstrap.js"></script>
+  <script type="text/javascript" src="external/bootstrap-select.js"></script>
+  <script type="text/javascript" src="external/codemirror/codemirror.js"></script>
+  <script type="text/javascript" src="external/codemirror/javascript.js"></script>
+  <script type="text/javascript" src="external/codemirror/active-line.js"></script>
+  <script type="text/javascript" src="external/codemirror/matchbrackets.js"></script>
+  <script type="text/javascript" src="../tools/editor/templateTestTaskInternal.js"></script>
+  <script type="text/javascript" src="scripts/internal/templateTest.js"></script>
+  <script type="text/javascript" src="scripts/view/templateTest.js"></script>
+  <script type="text/javascript" src="scripts/common.js"></script>
+  <script type="text/javascript">
+    $(document).ready(function () {
+      window.debugStatus = true;
+      let templateTestView = new TemplateTestView();
+      templateTestView.initialize();
+
+      const { remote } = require('electron');
+      const { Menu, MenuItem, dialog, globalShortcut } = remote;
+
+      let warningLoseChanges = () => {
+        return dialog.showMessageBox({
+          type: 'warning',
+          title: 'Предупреждение',
+          message: 'Все не сохраненные изменения будут потеряны!',
+          buttons: ['Отмена', 'Продолжить']
+        });
+      };
+      let openAction = function () {
+        if (warningLoseChanges() === 1) {
+          templateTestView.load();
+        }
+      };
+      let saveAction = function () {
+        templateTestView.save();
+      };
+      let saveAsAction = function () {
+        let fileName = dialog.showSaveDialog({
+          filters: [
+            { name: 'ШТЗ', extensions: ['json'] }
+          ]
+        });
+        if (fileName === undefined) {
+          return;
+        }
+        templateTestView.save(fileName);
+      };
+      let generateGIFT = function () {
+        let number = +$('#NumberTestsId').val();
+        let prefixName = $('#PrefixNameTestsId').val();
+
+        if (isNaN(number) || prefixName.length === 0 || number < 1) {
+          return;
+        }
+
+        let directoryName = dialog.showOpenDialog({
+          properties: ['openDirectory']
+        });
+        if (directoryName === undefined) {
+          return;
+        }
+
+        templateTestView.generateGIFT(directoryName, prefixName, number);
+      };
+
+      globalShortcut.unregister('CommandOrControl+O');
+      globalShortcut.unregister('CommandOrControl+S');
+      globalShortcut.unregister('CommandOrControl+Shift+S');
+      globalShortcut.unregister('CommandOrControl+G');
+
+      globalShortcut.register('CommandOrControl+O', openAction);
+      globalShortcut.register('CommandOrControl+S', saveAction);
+      globalShortcut.register('CommandOrControl+Shift+S', saveAsAction);
+      globalShortcut.register('CommandOrControl+G', generateGIFT);
+
+      const menu = new Menu();
+      menu.append(new MenuItem({
+        label: 'Загрузить...',
+        accelerator: 'CmdOrCtrl+O',
+        click: openAction
+      }));
+      menu.append(new MenuItem({
+        label: 'Сохранить...',
+        accelerator: 'CmdOrCtrl+S',
+        click: saveAction
+      }));
+      menu.append(new MenuItem({
+        label: 'Сохранить как...',
+        accelerator: 'CmdOrCtrl+Shift+S',
+        click: saveAsAction
+      }));
+
+      window.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        menu.popup({ window: remote.getCurrentWindow() });
+      }, false);
+
+      $('#generateButtonId').on('click', generateGIFT);
+    });
+  </script>
+</head>
+<style>
+  .left-buffer { margin-left:20px; }
+  .top-buffer { margin-top:10px; }
+</style>
+<body>
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-12">
+      <h3 class="form-signin-heading" align="left">Тема тестового шаблона</h3>
+      <div class="input-group"><input id="inputTitle" type="text" class="form-control" placeholder="Тема ШТ"></div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      <h3 class="form-signin-heading" align="left">Порядок тестовых заданий</h3>
+      <select title="Порядок" class="selectpicker" id="selectOrderTypeId" >
+      <option value="0">Строго последовательный</option>
+      <option value="1">Случайный</option>
+      </select>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      <h3>Последовательность ШТЗ</h3>
+      <button id="addTTT" type="button" class="btn btn-success">Добавить ШТЗ</button>
+    </div>
+  </div>
+  <div class="row" id="editListTTT">
+  </div>
+  <div class="row">
+    <div class="col-md-2">
+      <h3>Точечные тесты</h3>
+      <div class="input-group"><input id="PrefixNameTestsId" type="text" class="form-control" placeholder="Префикс имени тестов"></div>
+      <div class="input-group top-buffer"><input id="NumberTestsId" type="number" class="form-control" placeholder="Число тестов"></div>
+      <button id="generateButtonId" type="button" class="top-buffer btn btn-primary">Сгенерировать GIFT</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

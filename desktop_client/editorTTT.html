@@ -54,6 +54,10 @@
         templateTestViewWeb.saveTTT(fileName);
       };
 
+      globalShortcut.unregister('CommandOrControl+O');
+      globalShortcut.unregister('CommandOrControl+S');
+      globalShortcut.unregister('CommandOrControl+Shift+S');
+
       globalShortcut.register('CommandOrControl+O', openAction);
       globalShortcut.register('CommandOrControl+S', saveAction);
       globalShortcut.register('CommandOrControl+Shift+S', saveAsAction);

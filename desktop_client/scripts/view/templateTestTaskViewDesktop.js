@@ -17,19 +17,12 @@ class TemplateTestTaskDesktop {
   }
 
   loadTTT() {
-    const { dialog } = require('electron').remote;
-    const fs = require('fs');
-    let fileName = dialog.showOpenDialog({
-      filters: [
-        { name: 'ШТЗ', extensions: ['json'] }
-      ]
-    });
-
-    if (fileName === undefined || fileName.length !== 1) {
+    let data = READ_SINGLE_FILE();
+    if (data === undefined) {
       return;
     }
 
-    let ttt = JSON.parse(fs.readFileSync(fileName[0]));
+    let ttt = JSON.parse(data);
     this.templateTestView.load(ttt);
     this.fileName = fileName[0];
   }
