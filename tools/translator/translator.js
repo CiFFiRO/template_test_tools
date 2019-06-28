@@ -102,7 +102,7 @@ function isSpace(aChar) {
 
 module.exports = {
   checkTTT: function (ttt) {
-    if (!ttt.hasOwnProperty('type') || !ttt.hasOwnProperty('rules')
+    if (!ttt.hasOwnProperty('title') || !ttt.hasOwnProperty('type') || !ttt.hasOwnProperty('rules')
       || !ttt.hasOwnProperty('testText') || !ttt.hasOwnProperty('answerScript')) {
       throw Error('Bad json data');
     }
@@ -389,8 +389,6 @@ module.exports = {
     }
 
     for (let testIndex = 0; testIndex < test.length; ++testIndex) {
-      //console.log('wtf');
-      //console.log(test[testIndex]);
       result += test[testIndex]['testText'] + '{\n';
       if (test[testIndex]['type'] === INPUT_TYPE) {
         for (let optionIndex = 0; optionIndex < test[testIndex]['answers'].length; ++optionIndex) {

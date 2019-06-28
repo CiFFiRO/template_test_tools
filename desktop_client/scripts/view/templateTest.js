@@ -58,11 +58,7 @@ class TemplateTestView {
       }
 
       for (let i=0;i<data.length;++i) {
-        function cutPrefix(name) {
-          return name.substring(name.lastIndexOf('\\')+1);
-        }
-
-        data[i] = {'ttt': JSON.parse(data[i].data), 'title': cutPrefix(data[i].name)};
+        data[i] = JSON.parse(data[i].data);
       }
     } else {
       data = tttElements;
@@ -70,7 +66,7 @@ class TemplateTestView {
 
     for (let i=0;i<data.length;++i) {
       try {
-        this.internal.addTTT(data[i]['ttt'], data[i]['title']);
+        this.internal.addTTT(data[i]);
       } catch (error) {
         DEBUG(error);
         continue;

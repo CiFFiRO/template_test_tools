@@ -19,6 +19,7 @@ class TemplateTestTaskView {
     this.ruleRemoveIdPrefix = 'ruleRemoveIdPrefix_';
     this.addRuleButtomId = 'addRuleButtomId';
     this.isCurrectTTT = false;
+    this.titleInputId = 'titleInputId';
 
     if (callbackUpdate !== undefined) {
       this.callbackUpdate = callbackUpdate;
@@ -38,6 +39,22 @@ class TemplateTestTaskView {
   
   setCallbackDebug(callbackDebug) {
     this.callbackDebug = callbackDebug;
+  }
+
+  initializeTitle(tagId, data) {
+    $('#'+tagId).append('<div>' +
+      '<h1 class="form-signin-heading" align="left">Заголовок шаблона тестового задания</h1>' +
+      '<div class="input-group"><input id="' + this.titleInputId + '" type="text" class="form-control" placeholder="Заголовок"></div>' +
+      '</div>');
+
+    let title = $('#' + this.titleInputId);
+    title.on('input change', function() {
+      this.internal.setTitle(title.val());
+    }.bind(this));
+    if (data !== undefined) {
+      title.val(data['title']);
+      title.change();
+    }
   }
 
   initializeTestType(tagId, data) {
@@ -293,6 +310,7 @@ class TemplateTestTaskView {
 
   initialize(tagId, data) {
     this.tagContainId = tagId;
+    this.initializeTitle(tagId, data);
     this.initializeTestType(tagId, data);
     this.initializeRules(tagId, data);
     this.initializeTestText(tagId, data);

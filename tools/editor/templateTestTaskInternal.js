@@ -8,6 +8,15 @@ class TemplateTestTaskInternal {
     this.rulesToProductions = {};
     this.testText = '';
     this.answerScript = '';
+    this.title = '';
+  }
+
+  setTitle(title) {
+    if (typeof title === 'string') {
+      this.title = title;
+    } else {
+      throw new Error('TemplateTestInternal:setTitle argument is not a string');
+    }
   }
 
   setType(typeCode) {
@@ -115,6 +124,7 @@ class TemplateTestTaskInternal {
 
   toJson() {
     let json = {};
+    json['title'] = this.title;
     json['type'] = this.type;
     json['rules'] = this.rulesToProductions;
     json['testText'] = this.testText;

@@ -27,7 +27,7 @@ class TemplateTestInternal {
     this.orderType = type;
   }
 
-  addTTT(ttt, title) {
+  addTTT(ttt) {
     const translator = require('../tools/translator/translator');
 
     try {
@@ -38,7 +38,7 @@ class TemplateTestInternal {
       throw new Error('TemplateTestInternal:addTTT try add not correct TTT');
     }
 
-    this.arrayTTT.push({title: title, ttt:ttt});
+    this.arrayTTT.push(ttt);
   }
 
   removeTTT(tttIndex) {
@@ -63,7 +63,7 @@ class TemplateTestInternal {
 
     let tasks = [];
     for (let i=0;i<this.arrayTTT.length;++i) {
-      tasks.push(translator.generateTestTaskFromTTT(this.arrayTTT[i].ttt));
+      tasks.push(translator.generateTestTaskFromTTT(this.arrayTTT[i]));
     }
 
     if (this.orderType === ORDER_RANDOM_TYPE) {
