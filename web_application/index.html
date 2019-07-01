@@ -7,29 +7,113 @@
   <link href="external/codemirror/codemirror.css" rel="stylesheet" type="text/css">
   <link href="external/codemirror/darcula.css" rel="stylesheet" type="text/css">
   <script type="text/javascript" src="external/jquery-3.3.1.js"></script>
+  <script type="text/javascript" src="external/js.cookie.js"></script>
   <script type="text/javascript" src="external/bootstrap-3.3.7/js/bootstrap.js"></script>
   <script type="text/javascript" src="external/bootstrap-select.js"></script>
   <script type="text/javascript" src="external/codemirror/codemirror.js"></script>
   <script type="text/javascript" src="external/codemirror/javascript.js"></script>
   <script type="text/javascript" src="external/codemirror/active-line.js"></script>
   <script type="text/javascript" src="external/codemirror/matchbrackets.js"></script>
-  <script type="text/javascript" src="../tools/editor/templateTestTaskInternal.js"></script>
-  <script type="text/javascript" src="../tools/editor/templateTestTaskView.js"></script>
+  <script type="text/javascript" src="tools/editor/templateTestTaskInternal.js"></script>
+  <script type="text/javascript" src="tools/editor/templateTestTaskView.js"></script>
+  <script type="text/javascript" src="scripts/internal/validator.js"></script>
+  <script type="text/javascript" src="scripts/view/navigation.js"></script>
   <script type="text/javascript" src="scripts/view/templateTestTaskWeb.js"></script>
   <script type="text/javascript" src="scripts/common.js"></script>
   <script type="text/javascript">
     $(document).ready(function () {
       window.debugStatus = true;
-      let templateTestViewWeb = new TemplateTestTaskWeb();
-      templateTestViewWeb.initialize('templateTestTaskEditor');
+      let navigation = new NavigationView();
+      navigation.initializeMenu();
+      //navigation.test();
+
+//      let templateTestViewWeb = new TemplateTestTaskWeb();
+//      templateTestViewWeb.initialize('templateTestTaskEditor');
+//      Cookies.set('test_cookie', 'qwerty');
+//      $.post( "/test_post?a=3&b=5&v=asddasda", { test_var: "value"})
+//        .done(function (answer) {
+//          console.log('done');
+//          console.log(answer);
+//        })
+//        .fail(function (answer) {
+//          console.log('fail');
+//          console.log(answer);
+//        })
+//        .always(function () {
+//        });
+//      $.get( "/test_get?a=3&b=5&v=asddasda")
+//        .done(function (answer) {
+//          console.log('done');
+//          console.log(answer);
+//        })
+//        .fail(function (answer) {
+//          console.log('fail');
+//          console.log(answer);
+//        })
+//        .always(function () {
+//        });
     });
   </script>
   <style>
     .CodeMirror {border: 1px solid black; font-size:13px}
+    .center-position-25-7 {
+      top: 50%;
+      left: 50%;
+      width:25em;
+      height:7em;
+      margin-top: -3.5em;
+      margin-left: -12.5em;
+      border: 1px solid #ccc;
+      position:fixed;
+    }
+    .center-position-35-9 {
+      top: 50%;
+      left: 50%;
+      width:35em;
+      height:9em;
+      margin-top: -4.5em;
+      margin-left: -17.5em;
+      border: 1px solid #ccc;
+      position:fixed;
+    }
+    .center-position-35-7 {
+      top: 50%;
+      left: 50%;
+      width:35em;
+      height:7em;
+      margin-top: -3.5em;
+      margin-left: -17.5em;
+      border: 1px solid #ccc;
+      position:fixed;
+    }
+    .center-position-30-18 {
+      top: 50%;
+      left: 50%;
+      width:30em;
+      height:18em;
+      margin-top: -9em;
+      margin-left: -15em;
+      border: 1px solid #ccc;
+      position:fixed;
+    }
+    .center-position-30-33 {
+      top: 50%;
+      left: 50%;
+      width:30em;
+      height:33em;
+      margin-top: -16.5em;
+      margin-left: -15em;
+      border: 1px solid #ccc;
+      position:fixed;
+    }
+    .left-buffer-20 { margin-left:20px; }
+    .top-buffer-20 { margin-top:20px; }
+    .top-buffer-15 { margin-top:10px; }
+    .bottom-buffer { margin-bottom:10px; }
   </style>
 </head>
 <body>
-<div class="container" id="templateTestTaskEditor">
+<div class="container" id="panelId">
 </div>
 </body>
 </html>
