@@ -29,14 +29,14 @@ class NavigationView {
       '<button type="button" class="btn btn-default" id="' + loginButtonId + '">Вход</button>' +
       '<button type="button" class="btn btn-default" id="' + registrationButtonId + '">Регистрация</button>' +
       '</div></div></div>');
-    $('#' + loginButtonId).on('click', function () {
+    $('#' + loginButtonId).on('click', () => {
       $('#'+this.panelId).empty();
       this.login();
-    }.bind(this));
-    $('#' + registrationButtonId).on('click', function () {
+    });
+    $('#' + registrationButtonId).on('click', () => {
       $('#'+this.panelId).empty();
       this.registration();
-    }.bind(this));
+    });
   }
 
   registration() {
@@ -121,9 +121,9 @@ class NavigationView {
       }
       updateButtonState();
     });
-    $('#' + registrationButtonId).on('click', function() {
+    $('#' + registrationButtonId).on('click', () => {
       $.post( "/registration", form)
-       .done(function (answer) {
+       .done(answer => {
          let panel = $('#'+this.panelId);
          panel.empty();
          if (answer.ok) {
@@ -137,15 +137,15 @@ class NavigationView {
              '<h3 class="form-signin-heading" align="center">Была отправлена неправильная форма.<br>Регистрация прервана.</h3>' +
              '</div>');
          }
-       }.bind(this))
-       .fail(function () {
+       })
+       .fail(() => {
          let panel = $('#'+this.panelId);
          panel.append('<div class="panel panel-default center-position-25-7" align="center">' +
            '<div class="panel-body">' +
            '<h3 class="form-signin-heading" align="center">Сервер не доступен.</h3>' +
            '</div>');
-       }.bind(this));
-    }.bind(this));
+       });
+    });
   }
 
   login() {
