@@ -8,7 +8,6 @@ class NavigationView {
   }
 
   test() {
-
   }
 
   initializeMenu() {
@@ -127,10 +126,45 @@ class NavigationView {
          let panel = $('#'+this.panelId);
          panel.empty();
          if (answer.ok) {
-           panel.append('<div class="panel panel-default center-position-35-7" align="center">' +
+           let codeInputId = 'codeInputId';
+           let confirmCodeButtonId = 'confirmCodeButtonId';
+           panel.append('<div class="panel panel-default center-position-40-17" align="center">' +
              '<div class="panel-body">' +
-             '<h3 class="form-signin-heading" align="center">Для регистрации подтвердите почту.</h3>' +
-             '</div>');
+             '<h3 class="form-signin-heading" align="center">Введите код подтверждения регистрации, отправленный на Ваш Email.</h3>' +
+             '<div class="input-group top-buffer-20"><input id="' + codeInputId + '" type="text" class="form-control" placeholder="Код"></div>' +
+             '<div class="btn-group btn-group-lg top-buffer-20" role="group" >' +
+             '<button type="button" class="btn btn-default" id="' + confirmCodeButtonId + '">Подтвердить</button>' +
+             '</div></div>');
+           $('#' + confirmCodeButtonId).on('click', () => {
+             $.post('/registration_confirm', {code: $('#'+codeInputId).val()})
+               .done(answer => {
+                 if (answer.ok) {
+                   panel.empty();
+                   panel.append('<div class="panel panel-default center-position-25-7" align="center">' +
+                     '<div class="panel-body">' +
+                     '<h3 class="form-signin-heading" align="center">Регистрация завершена.</h3>' +
+                     '</div>');
+                   setTimeout(() => {
+                     panel.empty();
+                     this.initializeMenu();
+                   }, 2000);
+                 } else {
+                   let windowId = 'windowId';
+                   panel.append('<div class="panel panel-default center-position-30-7" align="center" id="' + windowId + '">' +
+                     '<div class="panel-body">' +
+                     '<h3 class="form-signin-heading" align="center">Не верный код. Повторите ввод.</h3>' +
+                     '</div></div>');
+                   setTimeout(()=>{$('#'+windowId).remove();}, 2000);
+                 }
+               })
+               .fail(answer => {
+                 panel.empty();
+                 panel.append('<div class="panel panel-default center-position-25-7" align="center">' +
+                   '<div class="panel-body">' +
+                   '<h3 class="form-signin-heading" align="center">Сервер не доступен.</h3>' +
+                   '</div>');
+               });
+           });
          } else {
            panel.append('<div class="panel panel-default center-position-35-9" align="center">' +
              '<div class="panel-body">' +
@@ -140,6 +174,7 @@ class NavigationView {
        })
        .fail(() => {
          let panel = $('#'+this.panelId);
+         panel.empty();
          panel.append('<div class="panel panel-default center-position-25-7" align="center">' +
            '<div class="panel-body">' +
            '<h3 class="form-signin-heading" align="center">Сервер не доступен.</h3>' +
