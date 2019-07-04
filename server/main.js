@@ -10,6 +10,7 @@ const nodemailer = require('nodemailer');
 
 const SERVER_LISTEN_PORT = 4001;
 const REGISTRATION_CONFIRM_TIME_LIMIT = 24*60*60;
+const SESSION_TIME_LIMIT = 24*60*60;
 const LOG_FILE_NAME = path.join(__dirname, "./log.txt");
 
 class Log {
@@ -189,5 +190,91 @@ app.post("/registration_confirm", (request, response) => {
       response.send({ok: false});
     });
 });
+
+app.post("/login", (request, response) => {
+  if (!request.body.hasOwnProperty('nickname') || !request.body.hasOwnProperty('password')) {
+    response.send({ok: false});
+    return;
+  }
+
+  connection.query("SELECT * FROM `server`.`user` WHERE `user`.`password_hash` = ? AND `user`.`nickname` = ?",
+    [getHash(request.body.password), request.body.nickname])
+    .then(results => {
+      if (results[0].length === 1) {
+        let sessionCode = getHash(request.headers["user-agent"] + request.ip + request.body.nickname + timeNow());
+        let user = {email: results[0][0]['e-mail'], nickname: results[0][0].nickname};
+        let userId = results[0][0].id;
+        connection.query("SELECT * FROM `server`.`description` WHERE `description`.`user_id` = ?", [userId])
+          .then(results => {
+            user.firstName = results[0][0].first_name;
+            user.secondName = results[0][0].second_name;
+            connection.query("INSERT INTO `server`.`session` (`user_id`, `hash`, `time`) VALUES (?, ?, ?)",
+              [userId, sessionCode, timeNow()])
+              .then(() => {
+                response.cookie('sessionCode', sessionCode, {maxAge: 1000 * SESSION_TIME_LIMIT});
+                response.send({ok: true, user: user});
+              })
+              .catch(err => {
+                Log.error('Insert into `server`.`session`: ' + err.message);
+                response.send({ok: false});
+              });
+          })
+          .catch(err => {
+            Log.error('Select form `server`.`description`: ' + err.message);
+            response.send({ok: false});
+          });
+      } else {
+        response.send({ok: false});
+      }
+    })
+    .catch(err => {
+      Log.error('Select form `server`.`user`: ' + err.message);
+      response.send({ok: false});
+    });
+});
+
+app.get("/session_valid", (request, response) => {
+  if (request.cookies.sessionCode === undefined) {
+    response.send({ok: false});
+    return;
+  }
+
+  connection.query("SELECT * FROM `server`.`session` WHERE `session`.`hash` = ?", [request.cookies.sessionCode])
+    .then(results => {
+      if (results[0].length > 0) {
+        if (results[0][0].time + SESSION_TIME_LIMIT > timeNow()) {
+          response.send({ok: true});
+        } else {
+          response.send({ok: false});
+        }
+      } else {
+        response.send({ok: false});
+      }
+    })
+    .catch(err => {
+      Log.error('Select form `server`.`session`: ' + err.message);
+      response.send({ok: false});
+    });
+});
+
+app.get("/logout", (request, response) => {
+  if (request.cookies.sessionCode === undefined) {
+    response.send('');
+    return;
+  }
+
+  connection.query("UPDATE `server`.`session` SET `session`.`time`=0 WHERE `session`.`hash` = ?",
+    [request.cookies.sessionCode])
+    .then(request => {
+      response.cookie('sessionCode', '', {maxAge: 0});
+      response.send('');
+    })
+    .catch(err => {
+      Log.error('Update `server`.`session`: ' + err.message);
+      response.send('');
+    });
+});
+
+
 
 app.listen(SERVER_LISTEN_PORT);
