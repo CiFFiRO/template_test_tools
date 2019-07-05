@@ -310,7 +310,7 @@ app.post("/upload_ttt", (request, response) => {
     (userId) => {
       connection.query("INSERT INTO `server`.`template_test_task` SET ?",
         {user_id: userId, template: compressString(request.body.templateTestTask)})
-        .then(() => {response.send({ok: true});})
+        .then(results => {response.send({ok: true, templateId: results[0].insertId});})
         .catch(err => {
           Log.error('Insert into `server`.`template_test_task`: ' + err.message);
           response.send({ok: false});
@@ -408,6 +408,47 @@ app.post("/remove_ttt", (request, response) => {
     () => {response.send({ok: false});});
 });
 
+app.post("/update_ttt", (request, response) => {
+  if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('templateId')
+    || isNaN(+request.body.templateId) || request.body.templateId < 0
+    || !request.body.hasOwnProperty('templateTestTask')) {
+    response.send({ok: false});
+    return;
+  }
+
+  try {
+    translator.checkTTT(JSON.parse(request.body.templateTestTask));
+  } catch (err) {
+    response.send({ok: false});
+    return;
+  }
+
+  sessionValidCheck(request.cookies.sessionCode,
+    (userId) => {
+      connection.query("SELECT * FROM `server`.`template_test_task` WHERE `template_test_task`.`id`=? AND `template_test_task`.`user_id`=?",
+        [request.body.templateId, userId])
+        .then(results => {
+          if (results[0].length === 1) {
+            connection.query("UPDATE `server`.`template_test_task` SET `template_test_task`.`template`=? WHERE `template_test_task`.`id`=? AND `template_test_task`.`user_id`=?",
+              [compressString(request.body.templateTestTask), request.body.templateId, userId])
+              .then(() => {
+                response.send({ok: true});
+              })
+              .catch((err) => {
+                Log.error('Update `server`.`template_test_task`: ' + err.message);
+                response.send({ok: false});
+              });
+          } else {
+            response.send({ok: false});
+          }
+        })
+        .catch((err) => {
+          Log.error('Select from `server`.`template_test_task`: ' + err.message);
+          response.send({ok: false});
+        });
+    },
+    () => {response.send({ok: false});});
+});
 
 
 app.listen(SERVER_LISTEN_PORT);
