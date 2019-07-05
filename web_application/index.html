@@ -33,7 +33,6 @@
     .workspace-position {
       margin-top: 100px;
       height:50em;
-      border: 1px solid #ccc;
     }
     .user-menu-position {
       top: 2%;
@@ -43,8 +42,9 @@
       margin-top: -2em;
       margin-left: -20em;
       position:fixed;
+      z-index: 100;
     }
-    .center-position-30-9 {
+    .center-position {
       top: 50%;
       left: 50%;
       width:30em;
@@ -54,94 +54,18 @@
       border: 1px solid #ccc;
       position:fixed;
     }
-    .center-position-24-18 {
-      top: 50%;
-      left: 50%;
-      width:24em;
-      height:18em;
-      margin-top: -9em;
-      margin-left: -12em;
-      border: 1px solid #ccc;
-      position:fixed;
-    }
-    .center-position-30-7 {
-      top: 50%;
-      left: 50%;
-      width:30em;
-      height:7em;
-      margin-top: -3.5em;
-      margin-left: -15em;
-      border: 1px solid #ccc;
-      position:fixed;
-    }
-    .center-position-40-17 {
-      top: 50%;
-      left: 50%;
-      width:40em;
-      height:17em;
-      margin-top: -8.5em;
-      margin-left: -20em;
-      border: 1px solid #ccc;
-      position:fixed;
-    }
-    .center-position-25-7 {
-      top: 50%;
-      left: 50%;
-      width:25em;
-      height:7em;
-      margin-top: -3.5em;
-      margin-left: -12.5em;
-      border: 1px solid #ccc;
-      position:fixed;
-    }
-    .center-position-35-9 {
-      top: 50%;
-      left: 50%;
-      width:35em;
-      height:9em;
-      margin-top: -4.5em;
-      margin-left: -17.5em;
-      border: 1px solid #ccc;
-      position:fixed;
-    }
-    .center-position-35-7 {
-      top: 50%;
-      left: 50%;
-      width:35em;
-      height:7em;
-      margin-top: -3.5em;
-      margin-left: -17.5em;
-      border: 1px solid #ccc;
-      position:fixed;
-    }
-    .center-position-30-18 {
-      top: 50%;
-      left: 50%;
-      width:30em;
-      height:18em;
-      margin-top: -9em;
-      margin-left: -15em;
-      border: 1px solid #ccc;
-      position:fixed;
-    }
-    .center-position-30-33 {
-      top: 50%;
-      left: 50%;
-      width:30em;
-      height:33em;
-      margin-top: -16.5em;
-      margin-left: -15em;
-      border: 1px solid #ccc;
-      position:fixed;
-    }
+    .left-buffer-30 { margin-left:30px; }
     .left-buffer-20 { margin-left:20px; }
     .top-buffer-20 { margin-top:20px; }
     .top-buffer-15 { margin-top:10px; }
     .bottom-buffer { margin-bottom:10px; }
+    [hidden] {
+      display: none !important;
+    }
   </style>
 </head>
 <body>
-<div class="container" id="panelId">
+<div class="container " id="panelId">
 </div>
 </body>
 </html>
