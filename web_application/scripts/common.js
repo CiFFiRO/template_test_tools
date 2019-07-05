@@ -56,3 +56,62 @@ function SAVE_FILE(content, fileName) {
   }
   a.click();
 }
+
+function USER_MESSAGE(panelId, message, width, height, callback) {
+  let windowId = 'windowId';
+  let panel = $('#'+panelId);
+  panel.append(
+    '<div class="panel panel-default" align="center" id="' + windowId + '" style="' + CENTER_POSITION_STYLE(width, height) + '">' +
+    '<div class="panel-body">' +
+    '<h3 class="form-signin-heading" align="center">' + message + '</h3>' +
+    '</div>');
+  setTimeout(()=>{
+    $('#'+windowId).remove();
+    if (callback) {
+      callback();
+    }
+  }, 2000);
+}
+
+function SERVER_DOWN_MESSAGE() {
+  let panel = $('#'+panelId);
+  panel.empty();
+  panel.append('<div class="panel panel-default" align="center" style="' + CENTER_POSITION_STYLE(25, 7) + '">' +
+    '<div class="panel-body">' +
+    '<h3 class="form-signin-heading" align="center">Сервер не доступен.</h3>' +
+    '</div>');
+}
+
+function OOOPS_MESSAGE() {
+  USER_MESSAGE('Упс, что-то пошло не так...', 25, 7);
+}
+
+function SHOW_DIALOG(panelId, message, width, height, okCallback) {
+  let windowId = 'windowId';
+  let okButtonId = 'okButtonId';
+  let cancelButtonId = 'cancelButtonId';
+  let panel = $('#'+panelId);
+  panel.append(
+    '<div class="panel panel-default" align="center" id="' + windowId + '" style="' + CENTER_POSITION_STYLE(width, height) + '">' +
+    '<div class="panel-body">' +
+    '<h3 class="form-signin-heading" align="center">' + message + '</h3>' +
+    '<div class="btn-group-horizontal btn-group-lg top-buffer-20" role="group" align="center">' +
+    '<button type="button" class="btn btn-default" id="' + okButtonId + '">Да</button>' +
+    '<button type="button" class="btn btn-default left-buffer-20" id="' + cancelButtonId + '">Отмена</button>' +
+    '</div></div></div>');
+  $('#'+okButtonId).on('click', () => {
+    $('#'+windowId).remove();
+    okCallback();
+  });
+  $('#'+cancelButtonId).on('click', () => {$('#'+windowId).remove();});
+}
+
+function CENTER_POSITION_STYLE(width, height) {
+  return "top: 50%;left: 50%;" +
+    "width:" + width + "em;" +
+    "height:" + height + "em;" +
+    "margin-top: -" + (height/2) + "em;" +
+    "margin-left: -" + (width/2) + "em;" +
+    "border: 1px solid #ccc;position:fixed;z-index: 75;";
+}
+

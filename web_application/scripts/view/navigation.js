@@ -34,7 +34,7 @@ class NavigationView {
   guestMenu() {
     let registrationButtonId = 'registrationButtonId';
     let loginButtonId = 'loginButtonId';
-    this.panel.append('<div class="panel panel-default center-position-30-18" align="center">' +
+    this.panel.append('<div class="panel panel-default" align="center" style="' + CENTER_POSITION_STYLE(30, 18) + '">' +
       '<div class="panel-body">' +
       '<h3 class="form-signin-heading" align="center">Добро пожаловать на портал, гость!</h3>' +
       '<div class="btn-group-vertical btn-group-lg top-buffer-20" role="group" >' +
@@ -61,7 +61,7 @@ class NavigationView {
     let registrationButtonId = 'registrationButtonId';
     let form = {email: '', nickname: '', password: '', firstName: '', secondName: ''};
     let passwordRetryOk = false;
-    this.panel.append('<div class="panel panel-default center-position-30-33" align="center">' +
+    this.panel.append('<div class="panel panel-default" align="center" style="' + CENTER_POSITION_STYLE(30, 33) + '">' +
       '<div class="panel-body">' +
       '<h3 class="form-signin-heading" align="center">Заполните форму ниже для регистрации.</h3>' +
       '<div class="input-group top-buffer-20"><input id="' + emailInputId + '" type="email" class="form-control" placeholder="E-mail"></div>' +
@@ -136,11 +136,11 @@ class NavigationView {
     $('#' + registrationButtonId).on('click', () => {
       $.post( "/registration", form)
        .done(answer => {
-         panel.empty();
+         this.panel.empty();
          if (answer.ok) {
            let codeInputId = 'codeInputId';
            let confirmCodeButtonId = 'confirmCodeButtonId';
-           this.panel.append('<div class="panel panel-default center-position-40-17" align="center">' +
+           this.panel.append('<div class="panel panel-default" align="center" style="' + CENTER_POSITION_STYLE(40, 17) + '">' +
              '<div class="panel-body">' +
              '<h3 class="form-signin-heading" align="center">Введите код подтверждения регистрации, отправленный на Ваш Email.</h3>' +
              '<div class="input-group top-buffer-20"><input id="' + codeInputId + '" type="text" class="form-control" placeholder="Код"></div>' +
@@ -152,27 +152,27 @@ class NavigationView {
                .done(answer => {
                  if (answer.ok) {
                    this.panel.empty();
-                   this.userMessage('Регистрация завершена.', 25, 7, () => {
+                   USER_MESSAGE(this.panelId, 'Регистрация завершена.', 25, 7, () => {
                      this.panel.empty();
                      this.initializeMenu();
                    });
                  } else {
-                   this.userMessage('Неверный код. Повторите ввод.', 30, 7);
+                   USER_MESSAGE(this.panelId, 'Неверный код. Повторите ввод.', 30, 7);
                  }
                })
                .fail(answer => {
-                 this.serverDownMessage();
+                 SERVER_DOWN_MESSAGE(this.panelId);
                });
            });
          } else {
-           this.panel.append('<div class="panel panel-default center-position-35-9" align="center">' +
+           this.panel.append('<div class="panel panel-default" align="center" style="' + CENTER_POSITION_STYLE(35, 9) + '">' +
              '<div class="panel-body">' +
              '<h3 class="form-signin-heading" align="center">Была отправлена неправильная форма.<br>Регистрация прервана.</h3>' +
              '</div>');
          }
        })
        .fail(() => {
-         this.serverDownMessage();
+         SERVER_DOWN_MESSAGE(this.panelId);
        });
     });
   }
@@ -181,7 +181,7 @@ class NavigationView {
     let loginInputId = 'loginInputId';
     let passwordInputId = 'passwordInputId';
     let signInButtonId = 'signInButtonId';
-    this.panel.append('<div class="panel panel-default center-position-24-18" align="center">' +
+    this.panel.append('<div class="panel panel-default" align="center" style="' + CENTER_POSITION_STYLE(24, 18) + '">' +
       '<div class="panel-body">' +
       '<h3 class="form-signin-heading" align="center">Введите данные.</h3>' +
       '<div class="input-group top-buffer-20"><input id="' + loginInputId + '" type="text" class="form-control" placeholder="Псевдоним"></div>' +
@@ -197,11 +197,11 @@ class NavigationView {
             this.panel.empty();
             this.initializeMenu();
           } else {
-            this.userMessage('Неверные данные. Повторите ввод.', 30, 9);
+            USER_MESSAGE(this.panelId, 'Неверные данные. Повторите ввод.', 30, 9);
           }
         })
         .fail(() => {
-          this.serverDownMessage();
+          SERVER_DOWN_MESSAGE(this.panelId);
         });
     });
 
@@ -237,12 +237,10 @@ class NavigationView {
     $('#'+logoutButtonId).on('click', () => {
       this.logout();
     });
-
     $('#'+viewDocumentationId).on('click', () => {
       workspace.empty();
       workspace.append('<h3 class="form-signin-heading" align="center">Раздел в разработке.</h3>');
     });
-
     $('#'+editTemplateTestTasksButtonId).on('click', () => {
       workspace.empty();
       this.actionsTemplateTestTasks(workspace);
@@ -258,8 +256,8 @@ class NavigationView {
     let uploadTTTButtonId = 'uploadTTTButtonId';
     let listSpaceId = 'listSpaceId';
     workspace.append('<div class="btn-group-horizontal btn-group-lg top-buffer-20" role="group" align="center">' +
-      '<button type="button" class="btn btn-success" id="' + createTTTButtonId + '">Создать</button>' +
-      '<button type="button" class="btn btn-primary left-buffer-20" id="' + uploadTTTButtonId + '">Загрузить</button>' +
+      '<button type="button" class="btn btn-success" id="' + createTTTButtonId + '"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Создать</button>' +
+      '<button type="button" class="btn btn-primary left-buffer-20" id="' + uploadTTTButtonId + '"><span class="glyphicon glyphicon-upload" aria-hidden="true"></span> Загрузить</button>' +
       '<div class="container-fluid" id="' + listSpaceId + '"></div></div>');
 
     let loadListPage, fillList;
@@ -279,7 +277,17 @@ class NavigationView {
           '</div>' +
           '</div><hr class="divider">');
         $('#'+buttonEditId).on('click', () => {
-          // TODO: Не забыть добавить!
+          $.post('/download_ttt', {templateId: list[i].id})
+            .done(answer => {
+              if (answer.ok) {
+                workspace.empty();
+                let editor = new TemplateTestTaskWeb();
+                editor.load(workspace.attr('id'), this.panelId, answer.templateTestTask, list[i].id);
+              } else {
+                OOOPS_MESSAGE(this.panelId);
+              }
+            })
+            .fail(() => {SERVER_DOWN_MESSAGE(this.panelId);});
         });
         $('#'+buttonDownloadId).on('click', () => {
           $.post('/download_ttt', {templateId: list[i].id})
@@ -287,22 +295,22 @@ class NavigationView {
               if (answer.ok) {
                 SAVE_FILE(JSON.stringify(answer.templateTestTask), 'TTT.json');
               } else {
-                this.ooopsMessage();
+                OOOPS_MESSAGE(this.panelId);
               }
             })
-            .fail(() => {this.serverDownMessage();});
+            .fail(() => {SERVER_DOWN_MESSAGE(this.panelId);});
         });
         $('#'+buttonRemoveId).on('click', () => {
-          this.showDialog('Вы действительно хотите удалить выбранный ШТЗ?', 35, 13, () => {
+          SHOW_DIALOG(this.panelId, 'Вы действительно хотите удалить выбранный ШТЗ?', 35, 13, () => {
             $.post('/remove_ttt', {templateId: list[i].id})
               .done(answer => {
                 if (answer.ok) {
                   loadListPage(0);
                 } else {
-                  this.ooopsMessage();
+                  OOOPS_MESSAGE(this.panelId);
                 }
               })
-              .fail(() => {this.serverDownMessage();});
+              .fail(() => {SERVER_DOWN_MESSAGE(this.panelId);});
           });
         });
       }
@@ -315,7 +323,7 @@ class NavigationView {
         '</div></div>');
       $('#'+prevButtonId).on('click', () => {
         if (pageId === 0) {
-          this.userMessage('Это первая страница.', 25, 7);
+          USER_MESSAGE(this.panelId, 'Это первая страница.', 25, 7);
           return;
         }
         loadListPage(pageId - 1);
@@ -336,91 +344,38 @@ class NavigationView {
                 list.empty();
                 list.append('<h3 class="form-signin-heading" align="center">У Вас нет загруженных ШТЗ.</h3>');
               } else {
-                this.userMessage('Это последняя страница.', 25, 7);
+                USER_MESSAGE(this.panelId, 'Это последняя страница.', 25, 7);
               }
             }
           } else {
-            this.ooopsMessage();
+            OOOPS_MESSAGE(this.panelId);
           }
         })
         .fail(() => {
-          this.serverDownMessage();
+          SERVER_DOWN_MESSAGE(this.panelId);
         });
     };
 
     loadListPage(0);
     $('#'+uploadTTTButtonId).on('click', () => {
-      LOAD_FILES(templateTestTask =>{
+      LOAD_FILES(templateTestTask => {
         $.post('/upload_ttt', {templateTestTask: templateTestTask})
           .done(answer => {
             if (answer.ok) {
               loadListPage(0);
             } else {
-              this.userMessage('ШТЗ синтаксически не корректен.', 30, 9);
+              USER_MESSAGE(this.panelId, 'ШТЗ синтаксически не корректен.', 30, 9);
             }
           })
           .fail(() => {
-            this.serverDownMessage();
+            SERVER_DOWN_MESSAGE(this.panelId);
           });
       });
     });
-
-  }
-
-  userMessage(message, width, height, callback) {
-    let windowId = 'windowId';
-    let okButtonId = '';
-    let cancelButtonId = '';
-    this.panel.append(
-      '<div class="panel panel-default" align="center" id="' + windowId + '" style="' + NavigationView.centerPositionStyle(width, height) + '">' +
-      '<div class="panel-body">' +
-      '<h3 class="form-signin-heading" align="center">' + message + '</h3>' +
-      '</div>');
-    setTimeout(()=>{
-      $('#'+windowId).remove();
-      if (callback) {
-        callback();
-      }
-    }, 2000);
-  }
-
-  serverDownMessage() {
-    this.panel.empty();
-    this.panel.append('<div class="panel panel-default" align="center" style="' + NavigationView.centerPositionStyle(25, 7) + '">' +
-      '<div class="panel-body">' +
-      '<h3 class="form-signin-heading" align="center">Сервер не доступен.</h3>' +
-      '</div>');
-  }
-
-  ooopsMessage() {
-    this.userMessage('Упс, что-то пошло не так...', 25, 7);
-  }
-
-  showDialog(message, width, height, okCallback) {
-    let windowId = 'windowId';
-    let okButtonId = 'okButtonId';
-    let cancelButtonId = 'cancelButtonId';//center-position-'+width+'-'+height+'"
-    this.panel.append(
-      '<div class="panel panel-default" align="center" id="' + windowId + '" style="' + NavigationView.centerPositionStyle(width, height) + '">' +
-      '<div class="panel-body">' +
-      '<h3 class="form-signin-heading" align="center">' + message + '</h3>' +
-      '<div class="btn-group-horizontal btn-group-lg top-buffer-20" role="group" align="center">' +
-      '<button type="button" class="btn btn-default" id="' + okButtonId + '">Да</button>' +
-      '<button type="button" class="btn btn-default left-buffer-20" id="' + cancelButtonId + '">Отмена</button>' +
-      '</div></div></div>');
-    $('#'+okButtonId).on('click', () => {
-      $('#'+windowId).remove();
-      okCallback();
+    $('#'+createTTTButtonId).on('click', () => {
+      workspace.empty();
+      let editor = new TemplateTestTaskWeb();
+      editor.initialize(workspace.attr('id'), this.panelId);
     });
-    $('#'+cancelButtonId).on('click', () => {$('#'+windowId).remove();});
-  }
-
-  static centerPositionStyle(width, height) {
-    return "top: 50%;left: 50%;" +
-      "width:" + width + "em;" +
-      "height:" + height + "em;" +
-      "margin-top: -" + (height/2) + "em;" +
-      "margin-left: -" + (width/2) + "em;" +
-      "border: 1px solid #ccc;position:fixed;";
   }
 }
