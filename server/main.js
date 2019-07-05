@@ -5,10 +5,11 @@ const cookieParser = require('cookie-parser');
 const validator = require('./validator')
 const mysql = require("mysql2");
 const CryptoJS = require('crypto-js');
-const fs = require('fs');
 const nodemailer = require('nodemailer');
 const translator = require('../tools/translator/translator');
 const zlib = require('zlib');
+const log = require('./log');
+const process = require('process');
 
 
 const SERVER_LISTEN_PORT = 4001;
@@ -16,24 +17,15 @@ const REGISTRATION_CONFIRM_TIME_LIMIT = 24*60*60;
 const SESSION_TIME_LIMIT = 24*60*60;
 const LOG_FILE_NAME = path.join(__dirname, "./log.txt");
 const TEMPLATES_PER_PAGE = 10;
-
-class Log {
-  static log(message) {
-    fs.appendFile(LOG_FILE_NAME, 'LOG @ ' + (new Date(Date.now())) + ': ' + message + '\n', error => {});
-  }
-
-  static warning(message) {
-    fs.appendFile(LOG_FILE_NAME, 'WARNING @ ' + (new Date(Date.now())) + ': ' + message + '\n', error => {});
-  }
-
-  static error(message) {
-    fs.appendFile(LOG_FILE_NAME, 'ERROR @ ' + (new Date(Date.now())) + ': ' + message + '\n', error => {});
-  }
-
-  static fatal(message) {
-    fs.appendFileSync(LOG_FILE_NAME, 'FATAL ERROR @ ' + (new Date(Date.now())) + ': ' + message + '\n', error => {});
-  }
-}
+const MAIL_HOST = "smtp.mail.ru";
+const MAIL_PORT = 465;
+const MAIL_SECURE = true;
+const MAIL_USER = "templatetestportal@mail.ru";
+const MAIL_USER_PASS = "nl5BRW8xCIYNDZU59hIYh9Ys6hf4klkw";
+const MYSQL_HOST = "localhost";
+const MYSQL_USER = "main";
+const MYSQL_DATABASE_NAME = "server";
+const MYSQL_USER_PASS = "mainpassword";
 
 function getHash(string) {
   return CryptoJS.SHA256(string).toString(CryptoJS.enc.Hex);
@@ -52,34 +44,49 @@ function uncompressString(data) {
   return zlib.inflateSync(Buffer.from(data, 'base64')).toString();
 }
 
-Log.log('Server start work');
+let logining = new log(LOG_FILE_NAME);
+
+logining.log('Server start');
+
+let signals = 'SIGTERM SIGPIPE SIGBUS SIGFPE SIGSEGV SIGILL SIGINT SIGHUP SIGBREAK'.split(' ');
+for (let i=0;i<signals.length;++i) {
+  process.on(signals[i], (signal) => {
+    logining.fatal(`Server stop by receive ${signal} signal`);
+    process.exit(0);
+  });
+}
+
 
 const transporter = nodemailer.createTransport({
-  host: "smtp.mail.ru",
-  port: 465,
-  secure: true,
+  host: MAIL_HOST,
+  port: MAIL_PORT,
+  secure: MAIL_SECURE,
   auth: {
-    user: 'templatetestportal@mail.ru',
-    pass: 'nl5BRW8xCIYNDZU59hIYh9Ys6hf4klkw'
+    user: MAIL_USER,
+    pass: MAIL_USER_PASS
   }
 });
 
 transporter.verify((error, success) => {
   if (error) {
-    Log.fatal("Mail connection - " + error.message);
+    logining.fatal("Mail connection - " + error.message);
     process.exit(1);
+  } else {
+    logining.log('Mail connect success');
   }
 });
 
 const connection = mysql.createConnection({
-  host: "localhost",
-  user: "main",
-  database: "server",
-  password: "mainpassword"
+  host: MYSQL_HOST,
+  user: MYSQL_USER,
+  database: MYSQL_DATABASE_NAME,
+  password: MYSQL_USER_PASS
 }).promise();
 
-connection.connect().catch((error) => {
-  Log.fatal("MySQL connection - " + error.message);
+connection.connect()
+  .then(() => {logining.log('MySQL connect success');})
+  .catch(error => {
+  logining.fatal("MySQL connection - " + error.message);
   process.exit(1);
 });
 
@@ -120,28 +127,28 @@ app.post("/registration", (request, response) => {
                 transporter.sendMail(mailOptions, function(error, info){
                   if (error) {
                     response.send({ok: false});
-                    Log.error('Can\'t send mail - ' + error.message);
+                    logining.error('Can\'t send mail - ' + error.message);
                   } else {
                     response.send({ok: true});
                   }
                 });
               })
               .catch(err => {
-                Log.error('Insert into `server`.`registration`: ' + err.message);
+                logining.error('Insert into `server`.`registration`: ' + err.message);
                 response.send({ok: false});
               });
           })
           .catch(err => {
-            Log.error('Insert into `server`.`form`: ' + err.message);
+            logining.error('Insert into `server`.`form`: ' + err.message);
             response.send({ok: false});
           });
       } else {
-        Log.error('Try register not unique form(=' + request.body + ')');
+        logining.error('Try register not unique form(=' + request.body + ')');
         response.send({ok: false});
       }
     })
     .catch(err => {
-      Log.error('Select `server`.`user`: ' + err.message);
+      logining.error('Select `server`.`user`: ' + err.message);
       response.send({ok: false});
     });
 });
@@ -177,29 +184,29 @@ app.post("/registration_confirm", (request, response) => {
                           response.send({ok: true});
                         })
                         .catch(err => {
-                          Log.error('Insert into `server`.`description`: ' + err.message);
+                          logining.error('Insert into `server`.`description`: ' + err.message);
                           response.send({ok: false});
                         });
                     })
                     .catch(err => {
-                      Log.error('Insert into `server`.`user`: ' + err.message);
+                      logining.error('Insert into `server`.`user`: ' + err.message);
                       response.send({ok: false});
                     });
                 })
                 .catch(err => {
-                  Log.error('Select from `server`.`form`: ' + err.message);
+                  logining.error('Select from `server`.`form`: ' + err.message);
                   response.send({ok: false});
                 });
             })
             .catch(err => {
-              Log.error('Update `server`.`registration`: ' + err.message);
+              logining.error('Update `server`.`registration`: ' + err.message);
               response.send({ok: false});
             });
         }
       }
     })
     .catch(err => {
-      Log.error('Select from `server`.`registration`: ' + err.message);
+      logining.error('Select from `server`.`registration`: ' + err.message);
       response.send({ok: false});
     });
 });
@@ -228,12 +235,12 @@ app.post("/login", (request, response) => {
                 response.send({ok: true, user: user});
               })
               .catch(err => {
-                Log.error('Insert into `server`.`session`: ' + err.message);
+                logining.error('Insert into `server`.`session`: ' + err.message);
                 response.send({ok: false});
               });
           })
           .catch(err => {
-            Log.error('Select form `server`.`description`: ' + err.message);
+            logining.error('Select form `server`.`description`: ' + err.message);
             response.send({ok: false});
           });
       } else {
@@ -241,7 +248,7 @@ app.post("/login", (request, response) => {
       }
     })
     .catch(err => {
-      Log.error('Select form `server`.`user`: ' + err.message);
+      logining.error('Select form `server`.`user`: ' + err.message);
       response.send({ok: false});
     });
 });
@@ -260,7 +267,7 @@ function sessionValidCheck(sessionCode, callbackPositive, callbackNegative) {
       }
     })
     .catch(err => {
-      Log.error('Select form `server`.`session`: ' + err.message);
+      logining.error('Select form `server`.`session`: ' + err.message);
       callbackNegative();
     });
 }
@@ -289,7 +296,7 @@ app.get("/logout", (request, response) => {
       response.send('');
     })
     .catch(err => {
-      Log.error('Update `server`.`session`: ' + err.message);
+      logining.error('Update `server`.`session`: ' + err.message);
       response.send('');
     });
 });
@@ -312,7 +319,7 @@ app.post("/upload_ttt", (request, response) => {
         {user_id: userId, template: compressString(request.body.templateTestTask)})
         .then(results => {response.send({ok: true, templateId: results[0].insertId});})
         .catch(err => {
-          Log.error('Insert into `server`.`template_test_task`: ' + err.message);
+          logining.error('Insert into `server`.`template_test_task`: ' + err.message);
           response.send({ok: false});
         });
     },
@@ -341,7 +348,7 @@ app.post("/view_list_ttt", (request, response) => {
           response.send({ok: true, list: list});
         })
         .catch((err) => {
-          Log.error('Select from `server`.`template_test_task`: ' + err.message);
+          logining.error('Select from `server`.`template_test_task`: ' + err.message);
           response.send({ok: false});
         });
     },
@@ -367,7 +374,7 @@ app.post("/download_ttt", (request, response) => {
           }
         })
         .catch((err) => {
-          Log.error('Select from `server`.`template_test_task`: ' + err.message);
+          logining.error('Select from `server`.`template_test_task`: ' + err.message);
           response.send({ok: false});
         });
     },
@@ -393,7 +400,7 @@ app.post("/remove_ttt", (request, response) => {
                 response.send({ok: true});
               })
               .catch((err) => {
-                Log.error('Delete from `server`.`template_test_task`: ' + err.message);
+                logining.error('Delete from `server`.`template_test_task`: ' + err.message);
                 response.send({ok: false});
               });
           } else {
@@ -401,7 +408,7 @@ app.post("/remove_ttt", (request, response) => {
           }
         })
         .catch((err) => {
-          Log.error('Select from `server`.`template_test_task`: ' + err.message);
+          logining.error('Select from `server`.`template_test_task`: ' + err.message);
           response.send({ok: false});
         });
     },
@@ -435,7 +442,7 @@ app.post("/update_ttt", (request, response) => {
                 response.send({ok: true});
               })
               .catch((err) => {
-                Log.error('Update `server`.`template_test_task`: ' + err.message);
+                logining.error('Update `server`.`template_test_task`: ' + err.message);
                 response.send({ok: false});
               });
           } else {
@@ -443,7 +450,7 @@ app.post("/update_ttt", (request, response) => {
           }
         })
         .catch((err) => {
-          Log.error('Select from `server`.`template_test_task`: ' + err.message);
+          logining.error('Select from `server`.`template_test_task`: ' + err.message);
           response.send({ok: false});
         });
     },
