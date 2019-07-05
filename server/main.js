@@ -7,11 +7,15 @@ const mysql = require("mysql2");
 const CryptoJS = require('crypto-js');
 const fs = require('fs');
 const nodemailer = require('nodemailer');
+const translator = require('../tools/translator/translator');
+const zlib = require('zlib');
+
 
 const SERVER_LISTEN_PORT = 4001;
 const REGISTRATION_CONFIRM_TIME_LIMIT = 24*60*60;
 const SESSION_TIME_LIMIT = 24*60*60;
 const LOG_FILE_NAME = path.join(__dirname, "./log.txt");
+const TEMPLATES_PER_PAGE = 10;
 
 class Log {
   static log(message) {
@@ -37,6 +41,15 @@ function getHash(string) {
 
 function timeNow() {
   return Math.floor(Date.now()/1000);
+}
+
+function compressString(data) {
+  let input = Buffer.from(data, 'utf8');
+  return zlib.deflateSync(input);
+}
+
+function uncompressString(data) {
+  return zlib.inflateSync(Buffer.from(data, 'base64')).toString();
 }
 
 Log.log('Server start work');
@@ -233,28 +246,34 @@ app.post("/login", (request, response) => {
     });
 });
 
+function sessionValidCheck(sessionCode, callbackPositive, callbackNegative) {
+  connection.query("SELECT * FROM `server`.`session` WHERE `session`.`hash` = ?", [sessionCode])
+    .then(results => {
+      if (results[0].length > 0) {
+        if (results[0][0].time + SESSION_TIME_LIMIT > timeNow()) {
+          callbackPositive(results[0][0].user_id);
+        } else {
+          callbackNegative();
+        }
+      } else {
+        callbackNegative();
+      }
+    })
+    .catch(err => {
+      Log.error('Select form `server`.`session`: ' + err.message);
+      callbackNegative();
+    });
+}
+
 app.get("/session_valid", (request, response) => {
   if (request.cookies.sessionCode === undefined) {
     response.send({ok: false});
     return;
   }
 
-  connection.query("SELECT * FROM `server`.`session` WHERE `session`.`hash` = ?", [request.cookies.sessionCode])
-    .then(results => {
-      if (results[0].length > 0) {
-        if (results[0][0].time + SESSION_TIME_LIMIT > timeNow()) {
-          response.send({ok: true});
-        } else {
-          response.send({ok: false});
-        }
-      } else {
-        response.send({ok: false});
-      }
-    })
-    .catch(err => {
-      Log.error('Select form `server`.`session`: ' + err.message);
-      response.send({ok: false});
-    });
+  sessionValidCheck(request.cookies.sessionCode,
+    () => {response.send({ok: true});},
+    () => {response.send({ok: false});});
 });
 
 app.get("/logout", (request, response) => {
@@ -273,6 +292,120 @@ app.get("/logout", (request, response) => {
       Log.error('Update `server`.`session`: ' + err.message);
       response.send('');
     });
+});
+
+app.post("/upload_ttt", (request, response) => {
+  if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('templateTestTask')) {
+    response.send({ok: false});
+    return;
+  }
+  try {
+    translator.checkTTT(JSON.parse(request.body.templateTestTask));
+  } catch (err) {
+    response.send({ok: false});
+    return;
+  }
+
+  sessionValidCheck(request.cookies.sessionCode,
+    (userId) => {
+      connection.query("INSERT INTO `server`.`template_test_task` SET ?",
+        {user_id: userId, template: compressString(request.body.templateTestTask)})
+        .then(() => {response.send({ok: true});})
+        .catch(err => {
+          Log.error('Insert into `server`.`template_test_task`: ' + err.message);
+          response.send({ok: false});
+        });
+    },
+    () => {response.send({ok: false});});
+});
+
+app.post("/view_list_ttt", (request, response) => {
+  if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('pageId')
+    || isNaN(+request.body.pageId) || request.body.pageId < 0) {
+    response.send({ok: false});
+    return;
+  }
+
+  let offset = request.body.pageId * TEMPLATES_PER_PAGE;
+
+  sessionValidCheck(request.cookies.sessionCode,
+    (userId) => {
+      connection.query("SELECT * FROM `server`.`template_test_task` WHERE `template_test_task`.`user_id`=? LIMIT " +
+        TEMPLATES_PER_PAGE + " OFFSET " + offset, [userId])
+        .then(results => {
+          let list = [];
+          for (let i=0;i<results[0].length;++i) {
+            let ttt = JSON.parse(uncompressString(results[0][i].template));
+            list.push({title: ttt.title, id: results[0][i].id});
+          }
+          response.send({ok: true, list: list});
+        })
+        .catch((err) => {
+          Log.error('Select from `server`.`template_test_task`: ' + err.message);
+          response.send({ok: false});
+        });
+    },
+    () => {response.send({ok: false});});
+});
+
+app.post("/download_ttt", (request, response) => {
+  if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('templateId')
+    || isNaN(+request.body.templateId) || request.body.templateId < 0) {
+    response.send({ok: false});
+    return;
+  }
+
+  sessionValidCheck(request.cookies.sessionCode,
+    (userId) => {
+      connection.query("SELECT * FROM `server`.`template_test_task` WHERE `template_test_task`.`id`=? AND `template_test_task`.`user_id`=?",
+        [request.body.templateId, userId])
+        .then(results => {
+          if (results[0].length === 1) {
+            response.send({ok: true, templateTestTask: JSON.parse(uncompressString(results[0][0].template))});
+          } else {
+            response.send({ok: false});
+          }
+        })
+        .catch((err) => {
+          Log.error('Select from `server`.`template_test_task`: ' + err.message);
+          response.send({ok: false});
+        });
+    },
+    () => {response.send({ok: false});});
+});
+
+app.post("/remove_ttt", (request, response) => {
+  if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('templateId')
+    || isNaN(+request.body.templateId) || request.body.templateId < 0) {
+    response.send({ok: false});
+    return;
+  }
+
+  sessionValidCheck(request.cookies.sessionCode,
+    (userId) => {
+      connection.query("SELECT * FROM `server`.`template_test_task` WHERE `template_test_task`.`id`=? AND `template_test_task`.`user_id`=?",
+        [request.body.templateId, userId])
+        .then(results => {
+          if (results[0].length === 1) {
+            connection.query("DELETE FROM `server`.`template_test_task` WHERE `template_test_task`.`id`=? AND `template_test_task`.`user_id`=?",
+              [request.body.templateId, userId])
+              .then(() => {
+                response.send({ok: true});
+              })
+              .catch((err) => {
+                Log.error('Delete from `server`.`template_test_task`: ' + err.message);
+                response.send({ok: false});
+              });
+          } else {
+            response.send({ok: false});
+          }
+        })
+        .catch((err) => {
+          Log.error('Select from `server`.`template_test_task`: ' + err.message);
+          response.send({ok: false});
+        });
+    },
+    () => {response.send({ok: false});});
 });
 
 
