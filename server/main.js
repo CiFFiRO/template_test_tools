@@ -301,6 +301,96 @@ app.get("/logout", (request, response) => {
     });
 });
 
+class TemplateAction {
+  static upload(userId, isTemplateTest, template, callbackPositive, callbackNegative) {
+    let tableName = isTemplateTest ? 'template_test' : 'template_test_task';
+    connection.query("INSERT INTO `server`.`" + tableName + "` SET ?",
+      {user_id: userId, template: compressString(template)})
+      .then(results => {callbackPositive(results);})
+      .catch(err => {
+        logining.error('Insert into `server`.`'+tableName+'`: ' + err.message);
+        callbackNegative();
+      });
+  }
+
+  static download(userId, templateId, isTemplateTest, callbackPositive, callbackNegative) {
+    let tableName = isTemplateTest ? 'template_test' : 'template_test_task';
+    connection.query("SELECT * FROM `server`.`"+tableName+"` WHERE `"+tableName+"`.`id`=? AND `"+tableName+"`.`user_id`=?",
+      [templateId, userId])
+      .then(results => {
+        callbackPositive(results);
+      })
+      .catch((err) => {
+        logining.error('Select from `server`.`'+tableName+'`: ' + err.message);
+        callbackNegative();
+      });
+  }
+
+  static remove(userId, templateId, isTemplateTest, callbackPositive, callbackNegative) {
+    let tableName = isTemplateTest ? 'template_test' : 'template_test_task';
+    connection.query("SELECT * FROM `server`.`"+tableName+"` WHERE `"+tableName+"`.`id`=? AND `"+tableName+"`.`user_id`=?",
+      [templateId, userId])
+      .then(results => {
+        if (results[0].length === 1) {
+          connection.query("DELETE FROM `server`.`"+tableName+"` WHERE `"+tableName+"`.`id`=? AND `"+tableName+"`.`user_id`=?",
+            [templateId, userId])
+            .then(() => {
+              callbackPositive();
+            })
+            .catch((err) => {
+              logining.error('Delete from `server`.`'+tableName+'`: ' + err.message);
+              callbackNegative();
+            });
+        } else {
+          callbackNegative();
+        }
+      })
+      .catch((err) => {
+        logining.error('Select from `server`.`'+tableName+'`: ' + err.message);
+        callbackNegative();
+      });
+  }
+
+  static update(userId, templateId, templateTestTask, isTemplateTest, callbackPositive, callbackNegative) {
+    let tableName = isTemplateTest ? 'template_test' : 'template_test_task';
+    connection.query("SELECT * FROM `server`.`"+tableName+"` WHERE `"+tableName+"`.`id`=? AND `"+tableName+"`.`user_id`=?",
+      [templateId, userId])
+      .then(results => {
+        if (results[0].length === 1) {
+          connection.query("UPDATE `server`.`"+tableName+"` SET `"+tableName+"`.`template`=? WHERE `"+tableName+"`.`id`=? AND `"+tableName+"`.`user_id`=?",
+            [compressString(templateTestTask), templateId, userId])
+            .then(() => {
+              callbackPositive();
+            })
+            .catch((err) => {
+              logining.error('Update `server`.`'+tableName+'`: ' + err.message);
+              callbackNegative();
+            });
+        } else {
+          callbackNegative();
+        }
+      })
+      .catch((err) => {
+        logining.error('Select from `server`.`'+tableName+'`: ' + err.message);
+        callbackNegative();
+      });
+  }
+
+  static viewList(userId, pageId, isTemplateTest, callbackPositive, callbackNegative) {
+    let tableName = isTemplateTest ? 'template_test' : 'template_test_task';
+    let offset = pageId * TEMPLATES_PER_PAGE;
+    connection.query("SELECT * FROM `server`.`" + tableName + "` WHERE `" + tableName + "`.`user_id`=? LIMIT " +
+      TEMPLATES_PER_PAGE + " OFFSET " + offset, [userId])
+      .then(results => {
+        callbackPositive(results);
+      })
+      .catch((err) => {
+        logining.error('Select from `server`.`'+tableName+'`: ' + err.message);
+        callbackNegative();
+      });
+  }
+}
+
 app.post("/upload_ttt", (request, response) => {
   if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('templateTestTask')) {
     response.send({ok: false});
@@ -315,11 +405,10 @@ app.post("/upload_ttt", (request, response) => {
 
   sessionValidCheck(request.cookies.sessionCode,
     (userId) => {
-      connection.query("INSERT INTO `server`.`template_test_task` SET ?",
-        {user_id: userId, template: compressString(request.body.templateTestTask)})
-        .then(results => {response.send({ok: true, templateId: results[0].insertId});})
-        .catch(err => {
-          logining.error('Insert into `server`.`template_test_task`: ' + err.message);
+      TemplateAction.upload(userId, false, request.body.templateTestTask,
+        results => {
+          response.send({ok: true, templateId: results[0].insertId});
+        }, () => {
           response.send({ok: false});
         });
     },
@@ -333,24 +422,18 @@ app.post("/view_list_ttt", (request, response) => {
     return;
   }
 
-  let offset = request.body.pageId * TEMPLATES_PER_PAGE;
-
   sessionValidCheck(request.cookies.sessionCode,
     (userId) => {
-      connection.query("SELECT * FROM `server`.`template_test_task` WHERE `template_test_task`.`user_id`=? LIMIT " +
-        TEMPLATES_PER_PAGE + " OFFSET " + offset, [userId])
-        .then(results => {
-          let list = [];
-          for (let i=0;i<results[0].length;++i) {
-            let ttt = JSON.parse(uncompressString(results[0][i].template));
-            list.push({title: ttt.title, id: results[0][i].id});
-          }
-          response.send({ok: true, list: list});
-        })
-        .catch((err) => {
-          logining.error('Select from `server`.`template_test_task`: ' + err.message);
-          response.send({ok: false});
-        });
+      TemplateAction.viewList(userId, request.body.pageId, false, results => {
+        let list = [];
+        for (let i=0;i<results[0].length;++i) {
+          let ttt = JSON.parse(uncompressString(results[0][i].template));
+          list.push({title: ttt.title, id: results[0][i].id});
+        }
+        response.send({ok: true, list: list});
+      }, () => {
+        response.send({ok: false});
+      });
     },
     () => {response.send({ok: false});});
 });
@@ -364,19 +447,15 @@ app.post("/download_ttt", (request, response) => {
 
   sessionValidCheck(request.cookies.sessionCode,
     (userId) => {
-      connection.query("SELECT * FROM `server`.`template_test_task` WHERE `template_test_task`.`id`=? AND `template_test_task`.`user_id`=?",
-        [request.body.templateId, userId])
-        .then(results => {
-          if (results[0].length === 1) {
-            response.send({ok: true, templateTestTask: JSON.parse(uncompressString(results[0][0].template))});
-          } else {
-            response.send({ok: false});
-          }
-        })
-        .catch((err) => {
-          logining.error('Select from `server`.`template_test_task`: ' + err.message);
+      TemplateAction.download(userId, request.body.templateId, false, results => {
+        if (results[0].length === 1) {
+          response.send({ok: true, templateTestTask: JSON.parse(uncompressString(results[0][0].template))});
+        } else {
           response.send({ok: false});
-        });
+        }
+      }, () => {
+        response.send({ok: false});
+      });
     },
     () => {response.send({ok: false});});
 });
@@ -390,27 +469,11 @@ app.post("/remove_ttt", (request, response) => {
 
   sessionValidCheck(request.cookies.sessionCode,
     (userId) => {
-      connection.query("SELECT * FROM `server`.`template_test_task` WHERE `template_test_task`.`id`=? AND `template_test_task`.`user_id`=?",
-        [request.body.templateId, userId])
-        .then(results => {
-          if (results[0].length === 1) {
-            connection.query("DELETE FROM `server`.`template_test_task` WHERE `template_test_task`.`id`=? AND `template_test_task`.`user_id`=?",
-              [request.body.templateId, userId])
-              .then(() => {
-                response.send({ok: true});
-              })
-              .catch((err) => {
-                logining.error('Delete from `server`.`template_test_task`: ' + err.message);
-                response.send({ok: false});
-              });
-          } else {
-            response.send({ok: false});
-          }
-        })
-        .catch((err) => {
-          logining.error('Select from `server`.`template_test_task`: ' + err.message);
-          response.send({ok: false});
-        });
+      TemplateAction.remove(userId, request.body.templateId, false, () => {
+        response.send({ok: true});
+      }, () => {
+        response.send({ok: false});
+      });
     },
     () => {response.send({ok: false});});
 });
@@ -432,30 +495,33 @@ app.post("/update_ttt", (request, response) => {
 
   sessionValidCheck(request.cookies.sessionCode,
     (userId) => {
-      connection.query("SELECT * FROM `server`.`template_test_task` WHERE `template_test_task`.`id`=? AND `template_test_task`.`user_id`=?",
-        [request.body.templateId, userId])
-        .then(results => {
-          if (results[0].length === 1) {
-            connection.query("UPDATE `server`.`template_test_task` SET `template_test_task`.`template`=? WHERE `template_test_task`.`id`=? AND `template_test_task`.`user_id`=?",
-              [compressString(request.body.templateTestTask), request.body.templateId, userId])
-              .then(() => {
-                response.send({ok: true});
-              })
-              .catch((err) => {
-                logining.error('Update `server`.`template_test_task`: ' + err.message);
-                response.send({ok: false});
-              });
-          } else {
-            response.send({ok: false});
-          }
-        })
-        .catch((err) => {
-          logining.error('Select from `server`.`template_test_task`: ' + err.message);
-          response.send({ok: false});
-        });
+      TemplateAction.update(userId, request.body.templateId, request.body.templateTestTask, false, () => {
+        response.send({ok: true});
+      }, () => {
+        response.send({ok: false});
+      });
     },
     () => {response.send({ok: false});});
 });
 
+app.post("/upload_template_test", (request, response) => {
+
+});
+
+app.post("/update_template_test", (request, response) => {
+
+});
+
+app.post("/download_template_test", (request, response) => {
+
+});
+
+app.post("/view_list_template_test", (request, response) => {
+
+});
+
+app.post("/remove_template_test", (request, response) => {
+
+});
 
 app.listen(SERVER_LISTEN_PORT);
