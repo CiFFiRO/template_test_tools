@@ -19,7 +19,7 @@ const menuTemplate = [
         label: 'Редактор ШТ',
         click: () => {
           mainWindow.loadURL('file://' + __dirname + '/editorTemplateTest.html');
-          //mainWindow.webContents.openDevTools();
+          mainWindow.webContents.openDevTools();
           mainWindow.on('closed', function() {
             mainWindow = null;
           });

@@ -3,24 +3,22 @@ class TemplateTestView {
     this.internal = new TemplateTestInternal();
     this.fileName = null;
     this.TTTPrefixId = 'TTTPrefixId_';
-    this.TTTDeletePrefixId = 'TTTDeletePrefixId_';
     this.uniqueNumber = 0;
-    this.sectionTTTIdToIndex = {};
     this.listTTTId = 'editListTTT';
     this.titleId = 'inputTitle';
     this.selectOrderTypeId = 'selectOrderTypeId';
     this.buttonAddTTTId = 'addTTT';
 
-    $('#' + this.titleId).on('input change', function() {
+    $('#' + this.titleId).on('input change', () => {
       this.internal.setTitle($('#' + this.titleId).val());
-    }.bind(this));
+    });
     $('select').selectpicker();
-    $('#' + this.selectOrderTypeId).on('input change', function() {
+    $('#' + this.selectOrderTypeId).on('input change', () => {
       this.internal.setOrderType(+$('#' + this.selectOrderTypeId).val());
-    }.bind(this));
-    $('#'+this.buttonAddTTTId).on('click', function() {
+    });
+    $('#'+this.buttonAddTTTId).on('click', () => {
       this.addTTTs();
-    }.bind(this));
+    });
   }
 
   initializeTitle(data) {
@@ -57,45 +55,60 @@ class TemplateTestView {
         return;
       }
 
-      for (let i=0;i<data.length;++i) {
+      for (let i = 0; i < data.length; ++i) {
         data[i] = JSON.parse(data[i].data);
       }
     } else {
       data = tttElements;
     }
 
-    for (let i=0;i<data.length;++i) {
+    for (let i = 0; i < data.length; ++i) {
       try {
         this.internal.addTTT(data[i]);
       } catch (error) {
         DEBUG(error);
-        continue;
       }
-
-      let sectionId = this.TTTPrefixId + this.uniqueNumber;
-      let buttonId = this.TTTDeletePrefixId + this.uniqueNumber;
-      ++this.uniqueNumber;
-
-      this.sectionTTTIdToIndex[sectionId] = this.internal.arrayTTT.length - 1;
-
-      $('#' + this.listTTTId).append('<div id="' + sectionId + '" class="row"><div class="col-md-12">' +
-        '<ul class="list-inline"><li><h3 class="form-signin-heading"><span class="left-buffer label label-default">' + data[i]['title'] + '</span></h3></li>' +
-        '<li><div class="col-md-1"><button id="' + buttonId + '" type="button" class="btn btn-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button></li>' +
-        '</ul></div></div>');
-      $('#'+buttonId).on('click', function() {
-        $('#' + sectionId).remove();
-        this.internal.removeTTT(this.sectionTTTIdToIndex[sectionId]);
-        let index = this.sectionTTTIdToIndex[sectionId];
-        delete this.sectionTTTIdToIndex[sectionId];
-        for (let key in this.sectionTTTIdToIndex) {
-          if (this.sectionTTTIdToIndex.hasOwnProperty(key)) {
-            if (this.sectionTTTIdToIndex[key] > index) {
-              --this.sectionTTTIdToIndex[key];
-            }
-          }
-        }
-      }.bind(this));
     }
+
+    let updateListTemplates = () => {
+      let list = $('#' + this.listTTTId);
+      list.empty();
+      for (let i = 0; i < this.internal.arrayTTT.length; ++i) {
+        let sectionId = this.TTTPrefixId + i;
+        let buttonRemoveId = 'buttonRemoveId_' + i;
+        let buttonUpId = 'buttonUpId_' + i;
+        let buttonDownId = 'buttonDownId_' + i;
+
+        list.append('<div class="row" id="' + sectionId + '">' +
+          '<div class="col-md-8"><h3 class="form-signin-heading" align="left"><span class="left-buffer-20 label label-default">' + this.internal.arrayTTT[i].title + '</span></h3></div>' +
+          '<div class="col-md-4">' +
+          '<button id="' + buttonUpId + '" type="button" class="btn btn-default top-buffer-20"><span class="glyphicon glyphicon-arrow-up" aria-hidden="true"></span></button>' +
+          '<button id="' + buttonDownId + '" type="button" class="btn btn-default left-buffer-30 top-buffer-20"><span class="glyphicon glyphicon-arrow-down" aria-hidden="true"></span></button>' +
+          '<button id="' + buttonRemoveId + '" type="button" class="btn btn-danger left-buffer-45 top-buffer-20"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button>' +
+          '</div>' +
+          '</div><hr class="divider">');
+        $('#' + buttonUpId).on('click', () => {
+          if (i === 0 || this.internal.arrayTTT.length === 1) {
+            return;
+          }
+          [this.internal.arrayTTT[i - 1], this.internal.arrayTTT[i]] = [this.internal.arrayTTT[i], this.internal.arrayTTT[i - 1]];
+          updateListTemplates();
+        });
+        $('#' + buttonDownId).on('click', () => {
+          if (i === this.internal.arrayTTT.length - 1 || this.internal.arrayTTT.length === 1) {
+            return;
+          }
+          [this.internal.arrayTTT[i], this.internal.arrayTTT[i + 1]] = [this.internal.arrayTTT[i + 1], this.internal.arrayTTT[i]];
+          updateListTemplates();
+        });
+        $('#' + buttonRemoveId).on('click', () => {
+          this.internal.arrayTTT.splice(i, 1);
+          updateListTemplates();
+        });
+      }
+    };
+
+    updateListTemplates();
   }
 
   initialize(data) {
