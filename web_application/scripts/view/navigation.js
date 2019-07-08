@@ -247,7 +247,7 @@ class NavigationView {
     });
     $('#'+editTemplateTestsButtonId).on('click', () => {
       workspace.empty();
-      workspace.append('<h3 class="form-signin-heading" align="center">Раздел в разработке.</h3>');
+      this.actionsTemplateTests(workspace);
     });
   }
 
@@ -377,5 +377,204 @@ class NavigationView {
       let editor = new TemplateTestTaskWeb();
       editor.initialize(workspace.attr('id'), this.panelId);
     });
+  }
+
+  actionsTemplateTests(workspace) {
+    let templateTest = {title: '', orderType: 0, arrayTTT: []};
+    let cloudTemplateId = null;
+    let inputTitleId = 'inputTitleId';
+    let selectOrderTypeId = 'selectOrderTypeId';
+    let addTTTButtonId = 'addTTTButtonId';
+    let editListTTTId = 'editListTTTId';
+    let downloadButtonId = 'downloadButtonId';
+    let uploadButtonId = 'uploadButtonId';
+    let listTemplatesId = 'listTemplatesId';
+    workspace.append('<div class="container-fluid">' +
+      '<div class="row">' +
+      '<div class="col-md-12">' +
+      '<h3 class="form-signin-heading" align="left">Тема тестового шаблона</h3>' +
+      '<div class="input-group"><input id="' + inputTitleId + '" type="text" class="form-control" placeholder="Тема ШТ"></div>' +
+      '</div></div><div class="row">' +
+      '<div class="col-md-12">' +
+      '<h3 class="form-signin-heading" align="left">Порядок тестовых заданий</h3>' +
+      '<select title="Порядок" class="selectpicker" id="' + selectOrderTypeId + '" >' +
+      '<option value="0">Строго последовательный</option>' +
+      '<option value="1">Случайный</option>' +
+      '</select></div></div>' +
+      '<div class="row">' +
+      '<div class="col-md-12">' +
+      '<h3>Последовательность ШТЗ</h3>' +
+      '<div id="' + listTemplatesId + '" class="container-fluid"></div>' +
+      '<button id="' + addTTTButtonId + '" type="button" class="btn btn-success">Добавить ШТЗ</button>' +
+      '</div></div>' +
+      '<div class="row" id="' + editListTTTId + '">' +
+      '</div>' +
+      '<div class="btn-group-horizontal top-buffer-20 bottom-buffer btn-group-lg" role="group" align="center">' +
+      '<button type="button" id="' + downloadButtonId + '" class="btn btn-info"><span class="glyphicon glyphicon-download" aria-hidden="true"></span> Скачать</button>' +
+      '<button type="button" id="' + uploadButtonId + '" class="btn btn-primary left-buffer-30"><span class="glyphicon glyphicon-upload" aria-hidden="true"></span> Загрузить</button>' +
+      '</div>' +
+      '</div>');
+    $('select').selectpicker();
+    $('#'+inputTitleId).on('input change', function () {
+      templateTest.title = $(this).val();
+    });
+    let selectTag = $('#'+selectOrderTypeId);
+    selectTag.on('input change', () => {
+      templateTest.orderType = +selectTag.val();
+    });
+    let listTemplates = $('#'+listTemplatesId);
+    let updateListTemplates = () => {
+      listTemplates.empty();
+      LOG(templateTest);
+      for (let i=0;i<templateTest.arrayTTT.length;++i) {
+        let sectionId = 'sectionId_'+i;
+        let buttonRemoveId = 'buttonRemoveId_'+i;
+        let buttonUpId = 'buttonUpId_'+i;
+        let buttonDownId = 'buttonDownId_'+i;
+        listTemplates.append('<div class="row" id="' + sectionId + '">' +
+          '<div class="col-md-8"><h3 class="form-signin-heading" align="left"><span class="left-buffer-20 label label-default">' + templateTest.arrayTTT[i].title + '</span></h3></div>' +
+          '<div class="col-md-4">' +
+          '<button id="' + buttonUpId + '" type="button" class="btn btn-default top-buffer-20"><span class="glyphicon glyphicon-arrow-up" aria-hidden="true"></span></button>' +
+          '<button id="' + buttonDownId + '" type="button" class="btn btn-default left-buffer-30 top-buffer-20"><span class="glyphicon glyphicon-arrow-down" aria-hidden="true"></span></button>' +
+          '<button id="' + buttonRemoveId + '" type="button" class="btn btn-danger left-buffer-45 top-buffer-20"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button>' +
+          '</div>' +
+          '</div><hr class="divider">');
+        $('#'+buttonUpId).on('click', () => {
+          if (i === 0 || templateTest.arrayTTT.length === 1) {
+            LOG('wtf');
+            return;
+          }
+          [templateTest.arrayTTT[i-1], templateTest.arrayTTT[i]] = [templateTest.arrayTTT[i], templateTest.arrayTTT[i-1]];
+          updateListTemplates();
+        });
+        $('#'+buttonDownId).on('click', () => {
+          if (i === templateTest.arrayTTT.length - 1 || templateTest.arrayTTT.length === 1) {
+            LOG('wtf');
+            return;
+          }
+          [templateTest.arrayTTT[i], templateTest.arrayTTT[i+1]] = [templateTest.arrayTTT[i+1], templateTest.arrayTTT[i]];
+          updateListTemplates();
+        });
+        $('#'+buttonRemoveId).on('click', () => {
+          templateTest.arrayTTT.splice(i, 1);
+          updateListTemplates();
+        });
+      }
+    };
+    $('#'+addTTTButtonId).on('click', () => {
+      let listChoiceId = 'listChoiceId';
+      let windowChoiceId = 'windowChoiceId';
+      let prevButtonId = 'prevButtonId';
+      let closeButtonId = 'closeButtonId';
+      let nextButtonId = 'nextButtonId';
+      this.panel.append('<div class="panel panel-default" align="center" style="' + CENTER_POSITION_STYLE(60, 30) + 'overflow:auto;" id="' + windowChoiceId + '">' +
+        '<div class="container-fluid" id="' + listChoiceId + '">' +
+        '</div>'+
+        '<div class="btn-group-horizontal top-buffer-20 bottom-buffer" role="group" >' +
+        '<button type="button" class="btn btn-default" id="' + prevButtonId + '"><span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span></button>' +
+        '<button type="button" class="btn btn-default left-buffer-20" id="' + closeButtonId + '">Закрыть</button>' +
+        '<button type="button" class="btn btn-default left-buffer-20" id="' + nextButtonId + '"><span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span></button>' +
+        '</div></div>');
+      let list = $('#'+listChoiceId);
+      let pageId = 0;
+      let updatePageList = (answer) => {
+        list.empty();
+        for (let i=0;i<answer.list.length;++i) {
+          let buttonAddId = 'buttonAddId_'+i;
+          list.append('<div class="row">' +
+            '<div class="col-md-8"><h3 class="form-signin-heading" align="left"><span class="left-buffer-20 label label-default">' + answer.list[i].title + '</span></h3></div>' +
+            '<div class="col-md-4">' +
+            '<button id="' + buttonAddId + '" type="button" class="btn btn-success top-buffer-20"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></button>' +
+            '</div>' +
+            '</div><hr class="divider">');
+          $('#'+buttonAddId).on('click', () => {
+            $.post('/download_ttt', {templateId: answer.list[i].id})
+              .done(answer => {
+                if (answer.ok) {
+                  templateTest.arrayTTT.push(answer.templateTestTask);
+                  updateListTemplates();
+                } else {
+                  OOOPS_MESSAGE(this.panelId);
+                }
+              })
+              .fail(() => {SERVER_DOWN_MESSAGE(this.panelId);});
+          });
+        }
+      };
+      let viewList = () => {
+        $.post('/view_list_ttt', {pageId:pageId})
+          .done(answer => {
+            if (answer.ok) {
+              if (answer.list.length !== 0) {
+                updatePageList(answer);
+              } else {
+                if (pageId === 0) {
+                  list.empty();
+                  list.append('<h3 class="form-signin-heading" align="center">У Вас нет загруженных ШТЗ.</h3>');
+                } else {
+                  --pageId;
+                  USER_MESSAGE(this.panelId, 'Это последняя страница.', 25, 7);
+                }
+              }
+            } else {
+              OOOPS_MESSAGE(this.panelId);
+            }
+          })
+          .fail(() => {
+            SERVER_DOWN_MESSAGE(this.panelId);
+          });
+      };
+
+      viewList();
+
+      $('#'+prevButtonId).on('click', () => {
+        if (pageId === 0) {
+          USER_MESSAGE(this.panelId, 'Это первая страница.', 25, 7);
+          return;
+        }
+        --pageId;
+        viewList();
+      });
+      $('#'+closeButtonId).on('click', () => {
+        $('#'+windowChoiceId).remove();
+      });
+      $('#'+nextButtonId).on('click', () => {
+        ++pageId;
+        viewList();
+      });
+    });
+    $('#'+downloadButtonId).on('click', () => {
+      SAVE_FILE(JSON.stringify(templateTest), 'templateTest.json');
+    });
+    $('#'+uploadButtonId).on('click', () => {
+      if (cloudTemplateId === null) {
+        $.post('/upload_template_test', {templateTest: templateTest})
+          .done(answer => {
+            if (answer.ok) {
+              cloudTemplateId = answer.templateId;
+            } else {
+              USER_MESSAGE(this.panelId, 'ШТ синтаксически не корректен.', 30, 9);
+            }
+          })
+          .fail(() => {
+            SERVER_DOWN_MESSAGE(this.panelId);
+          });
+      } else {
+        $.post('/update_template_test', {templateTest: templateTest, templateId: cloudTemplateId})
+          .done(answer => {
+            if (!answer.ok) {
+              USER_MESSAGE(this.panelId, 'ШТ синтаксически не корректен.', 30, 9);
+            } else {
+              USER_MESSAGE(this.panelId, 'ШТ обновлен.', 20, 7);
+            }
+          })
+          .fail(() => {
+            SERVER_DOWN_MESSAGE(this.panelId);
+          });
+      }
+    });
+
+    selectTag.val("0");
+    selectTag.change();
   }
 }

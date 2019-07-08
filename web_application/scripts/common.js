@@ -50,11 +50,17 @@ function LOAD_FILES(callback) {
 
 function SAVE_FILE(content, fileName) {
   let a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([content], {type: 'text/plain'}));
+  let url = URL.createObjectURL(new Blob([content], {type: 'text/plain'}));
+  a.href = url;
   if (fileName) {
     a.download = fileName;
   }
+  document.body.appendChild(a);
   a.click();
+  setTimeout(function() {
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }, 0);
 }
 
 function USER_MESSAGE(panelId, message, width, height, callback) {
@@ -82,8 +88,8 @@ function SERVER_DOWN_MESSAGE() {
     '</div>');
 }
 
-function OOOPS_MESSAGE() {
-  USER_MESSAGE('Упс, что-то пошло не так...', 25, 7);
+function OOOPS_MESSAGE(panelId) {
+  USER_MESSAGE(panelId, 'Упс, что-то пошло не так...', 25, 7);
 }
 
 function SHOW_DIALOG(panelId, message, width, height, okCallback) {
