@@ -425,7 +425,6 @@ class NavigationView {
     let listTemplates = $('#'+listTemplatesId);
     let updateListTemplates = () => {
       listTemplates.empty();
-      LOG(templateTest);
       for (let i=0;i<templateTest.arrayTTT.length;++i) {
         let sectionId = 'sectionId_'+i;
         let buttonRemoveId = 'buttonRemoveId_'+i;
@@ -441,7 +440,6 @@ class NavigationView {
           '</div><hr class="divider">');
         $('#'+buttonUpId).on('click', () => {
           if (i === 0 || templateTest.arrayTTT.length === 1) {
-            LOG('wtf');
             return;
           }
           [templateTest.arrayTTT[i-1], templateTest.arrayTTT[i]] = [templateTest.arrayTTT[i], templateTest.arrayTTT[i-1]];
@@ -449,7 +447,6 @@ class NavigationView {
         });
         $('#'+buttonDownId).on('click', () => {
           if (i === templateTest.arrayTTT.length - 1 || templateTest.arrayTTT.length === 1) {
-            LOG('wtf');
             return;
           }
           [templateTest.arrayTTT[i], templateTest.arrayTTT[i+1]] = [templateTest.arrayTTT[i+1], templateTest.arrayTTT[i]];
