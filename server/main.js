@@ -10,6 +10,7 @@ const translator = require('../tools/translator/translator');
 const zlib = require('zlib');
 const log = require('./log');
 const process = require('process');
+const archiver = require('archiver');
 
 
 const SERVER_LISTEN_PORT = 4001;
@@ -17,6 +18,7 @@ const REGISTRATION_CONFIRM_TIME_LIMIT = 24*60*60;
 const SESSION_TIME_LIMIT = 24*60*60;
 const LOG_FILE_NAME = path.join(__dirname, "./log.txt");
 const TEMPLATES_PER_PAGE = 10;
+const MAX_GIFT_TEST_GENERATION = 100;
 const MAIL_HOST = "smtp.mail.ru";
 const MAIL_PORT = 465;
 const MAIL_SECURE = true;
@@ -404,7 +406,7 @@ app.post("/upload_ttt", (request, response) => {
   }
 
   sessionValidCheck(request.cookies.sessionCode,
-    (userId) => {
+    userId => {
       TemplateAction.upload(userId, false, request.body.templateTestTask,
         results => {
           response.send({ok: true, templateId: results[0].insertId});
@@ -423,7 +425,7 @@ app.post("/view_list_ttt", (request, response) => {
   }
 
   sessionValidCheck(request.cookies.sessionCode,
-    (userId) => {
+    userId => {
       TemplateAction.viewList(userId, request.body.pageId, false, results => {
         let list = [];
         for (let i=0;i<results[0].length;++i) {
@@ -446,7 +448,7 @@ app.post("/download_ttt", (request, response) => {
   }
 
   sessionValidCheck(request.cookies.sessionCode,
-    (userId) => {
+    userId => {
       TemplateAction.download(userId, request.body.templateId, false, results => {
         if (results[0].length === 1) {
           response.send({ok: true, templateTestTask: JSON.parse(uncompressString(results[0][0].template))});
@@ -468,7 +470,7 @@ app.post("/remove_ttt", (request, response) => {
   }
 
   sessionValidCheck(request.cookies.sessionCode,
-    (userId) => {
+    userId => {
       TemplateAction.remove(userId, request.body.templateId, false, () => {
         response.send({ok: true});
       }, () => {
@@ -494,7 +496,7 @@ app.post("/update_ttt", (request, response) => {
   }
 
   sessionValidCheck(request.cookies.sessionCode,
-    (userId) => {
+    userId => {
       TemplateAction.update(userId, request.body.templateId, request.body.templateTestTask, false, () => {
         response.send({ok: true});
       }, () => {
@@ -505,23 +507,156 @@ app.post("/update_ttt", (request, response) => {
 });
 
 app.post("/upload_template_test", (request, response) => {
+  if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('templateTest')) {
+    response.send({ok: false});
+    return;
+  }
+  if (!translator.checkTemplateTest(JSON.parse(request.body.templateTest))) {
+    response.send({ok: false});
+    return;
+  }
 
+  sessionValidCheck(request.cookies.sessionCode,
+    userId => {
+      TemplateAction.upload(userId, true, request.body.templateTest,
+        results => {
+          response.send({ok: true, templateId: results[0].insertId});
+        }, () => {
+          response.send({ok: false});
+        });
+    },
+    () => {response.send({ok: false});});
 });
 
 app.post("/update_template_test", (request, response) => {
+  if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('templateId')
+    || isNaN(+request.body.templateId) || request.body.templateId < 0
+    || !request.body.hasOwnProperty('templateTest')) {
+    response.send({ok: false});
+    return;
+  }
+  if (!translator.checkTemplateTest(JSON.parse(request.body.templateTest))) {
+    response.send({ok: false});
+    return;
+  }
 
+  sessionValidCheck(request.cookies.sessionCode,
+    userId => {
+      TemplateAction.update(userId, request.body.templateId, request.body.templateTest, true, () => {
+        response.send({ok: true});
+      }, () => {
+        response.send({ok: false});
+      });
+    },
+    () => {response.send({ok: false});});
 });
 
 app.post("/download_template_test", (request, response) => {
+  if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('templateId')
+    || isNaN(+request.body.templateId) || request.body.templateId < 0) {
+    response.send({ok: false});
+    return;
+  }
 
+  sessionValidCheck(request.cookies.sessionCode,
+    userId => {
+      TemplateAction.download(userId, request.body.templateId, true, results => {
+        if (results[0].length === 1) {
+          response.send({ok: true, templateTest: JSON.parse(uncompressString(results[0][0].template))});
+        } else {
+          response.send({ok: false});
+        }
+      }, () => {
+        response.send({ok: false});
+      });
+    },
+    () => {response.send({ok: false});});
 });
 
 app.post("/view_list_template_test", (request, response) => {
+  if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('pageId')
+    || isNaN(+request.body.pageId) || request.body.pageId < 0) {
+    response.send({ok: false});
+    return;
+  }
 
+  sessionValidCheck(request.cookies.sessionCode,
+    userId => {
+      TemplateAction.viewList(userId, request.body.pageId, true, results => {
+        let list = [];
+        for (let i=0;i<results[0].length;++i) {
+          let ttt = JSON.parse(uncompressString(results[0][i].template));
+          list.push({title: ttt.title, id: results[0][i].id});
+        }
+        response.send({ok: true, list: list});
+      }, () => {
+        response.send({ok: false});
+      });
+    },
+    () => {response.send({ok: false});});
 });
 
 app.post("/remove_template_test", (request, response) => {
+  if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('templateId')
+    || isNaN(+request.body.templateId) || request.body.templateId < 0) {
+    response.send({ok: false});
+    return;
+  }
 
+  sessionValidCheck(request.cookies.sessionCode,
+    userId => {
+      TemplateAction.remove(userId, request.body.templateId, true, () => {
+        response.send({ok: true});
+      }, () => {
+        response.send({ok: false});
+      });
+    },
+    () => {response.send({ok: false});});
+});
+
+app.use("/generate_gift", (request, response) => {
+  if (request.cookies.sessionCode === undefined || !request.query.hasOwnProperty('templateId') ||
+    !request.query.hasOwnProperty('numberTest') || isNaN(+request.query.numberTest) || +request.query.numberTest <= 0
+    || +request.query.numberTest > MAX_GIFT_TEST_GENERATION || isNaN(+request.query.templateId) || +request.query.templateId < 0) {
+    console.log('wtf1');
+    response.send({ok: false});
+    return;
+  }
+
+  let numberTest = +request.query.numberTest;
+  let templateId = +request.query.templateId;
+
+  sessionValidCheck(request.cookies.sessionCode,
+    userId => {
+      TemplateAction.download(userId, templateId, true, results => {
+        if (results[0].length === 1) {
+          let template = JSON.parse(uncompressString(results[0][0].template));
+          const archive = archiver('zip');
+          response.attachment('testsGIFT.zip');
+          archive.pipe(response);
+
+          for (let i=0;i<numberTest;++i) {
+            let fileName = 'pointed_test_';
+            if (i<10) {
+              fileName += '0' + i;
+            } else {
+              fileName += i;
+            }
+            fileName += '.gift';
+
+            archive.append(translator.translateTestToGIFT(translator.generateTestFormTemplateTest(template)),
+              {name: fileName});
+          }
+
+          archive.finalize();
+        } else {
+          response.send('Упс, что-то пошло не так...');
+        }
+      }, () => {
+        response.send('Упс, что-то пошло не так...');
+      });
+    },
+    () => {response.send('Упс, что-то пошло не так...');});
 });
 
 app.listen(SERVER_LISTEN_PORT);
