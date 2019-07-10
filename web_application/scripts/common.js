@@ -79,7 +79,7 @@ function USER_MESSAGE(panelId, message, width, height, callback) {
   }, 2000);
 }
 
-function SERVER_DOWN_MESSAGE() {
+function SERVER_DOWN_MESSAGE(panelId) {
   let panel = $('#'+panelId);
   panel.empty();
   panel.append('<div class="panel panel-default" align="center" style="' + CENTER_POSITION_STYLE(25, 7) + '">' +

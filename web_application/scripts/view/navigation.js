@@ -251,7 +251,8 @@ class NavigationView {
     });
   }
 
-  actionsTemplateTestTasks(workspace) {
+  actions(workspace, getListCallback, createCallback, uploadCallback, editCallback, downloadCallback, removeCallback,
+          generateGIFTCallback) {
     let createTTTButtonId = 'createTTTButtonId';
     let uploadTTTButtonId = 'uploadTTTButtonId';
     let listSpaceId = 'listSpaceId';
@@ -268,51 +269,36 @@ class NavigationView {
         let buttonEditId = 'buttonEditId_' + i;
         let buttonDownloadId = 'buttonDownloadId_' + i;
         let buttonRemoveId = 'buttonRemoveId_' + i;
+        let buttonGenerateGIFT = 'buttonGenerateGIFT_'+i;
+        let buttonsText = '';
+        if (generateGIFTCallback) {
+          buttonsText += '<button id="' + buttonGenerateGIFT + '" type="button" class="btn btn-black top-buffer-20 right-buffer-30">GIFT</button>';
+        }
+        buttonsText += '<button id="' + buttonEditId + '" type="button" class="btn btn-warning top-buffer-20"><span class="glyphicon glyphicon-edit" aria-hidden="true"></span></button>' +
+          '<button id="' + buttonDownloadId + '" type="button" class="btn btn-info left-buffer-30 top-buffer-20"><span class="glyphicon glyphicon-download" aria-hidden="true"></span></button>' +
+          '<button id="' + buttonRemoveId + '" type="button" class="btn btn-danger left-buffer-30 top-buffer-20"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button>';
         listSpace.append('<div class="row">' +
           '<div class="col-md-8"><h3 class="form-signin-heading" align="left"><span class="left-buffer-20 label label-default">' + list[i].title + '</span></h3></div>' +
           '<div class="col-md-4">' +
-          '<button id="' + buttonEditId + '" type="button" class="btn btn-warning top-buffer-20"><span class="glyphicon glyphicon-edit" aria-hidden="true"></span></button>' +
-          '<button id="' + buttonDownloadId + '" type="button" class="btn btn-info left-buffer-30 top-buffer-20"><span class="glyphicon glyphicon-download" aria-hidden="true"></span></button>' +
-          '<button id="' + buttonRemoveId + '" type="button" class="btn btn-danger left-buffer-30 top-buffer-20"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button>' +
+          buttonsText +
           '</div>' +
           '</div><hr class="divider">');
         $('#'+buttonEditId).on('click', () => {
-          $.post('/download_ttt', {templateId: list[i].id})
-            .done(answer => {
-              if (answer.ok) {
-                workspace.empty();
-                let editor = new TemplateTestTaskWeb();
-                editor.load(workspace.attr('id'), this.panelId, answer.templateTestTask, list[i].id);
-              } else {
-                OOOPS_MESSAGE(this.panelId);
-              }
-            })
-            .fail(() => {SERVER_DOWN_MESSAGE(this.panelId);});
+          editCallback({templateId: list[i].id});
         });
         $('#'+buttonDownloadId).on('click', () => {
-          $.post('/download_ttt', {templateId: list[i].id})
-            .done(answer => {
-              if (answer.ok) {
-                SAVE_FILE(JSON.stringify(answer.templateTestTask), 'TTT.json');
-              } else {
-                OOOPS_MESSAGE(this.panelId);
-              }
-            })
-            .fail(() => {SERVER_DOWN_MESSAGE(this.panelId);});
+          downloadCallback({templateId: list[i].id});
         });
         $('#'+buttonRemoveId).on('click', () => {
-          SHOW_DIALOG(this.panelId, 'Вы действительно хотите удалить выбранный ШТЗ?', 35, 13, () => {
-            $.post('/remove_ttt', {templateId: list[i].id})
-              .done(answer => {
-                if (answer.ok) {
-                  loadListPage(0);
-                } else {
-                  OOOPS_MESSAGE(this.panelId);
-                }
-              })
-              .fail(() => {SERVER_DOWN_MESSAGE(this.panelId);});
+          removeCallback({templateId: list[i].id}, () => {
+            loadListPage(0);
           });
         });
+        if (generateGIFTCallback) {
+          $('#'+buttonGenerateGIFT).on('click', () => {
+            generateGIFTCallback({templateId: list[i].id});
+          });
+        }
       }
       let nextButtonId = 'nextButtonId';
       let prevButtonId = 'prevButtonId';
@@ -334,54 +320,188 @@ class NavigationView {
     };
     loadListPage = (pageId) => {
       let list = $('#'+listSpaceId);
-      $.post('/view_list_ttt', {pageId:pageId})
-        .done(answer => {
-          if (answer.ok) {
-            if (answer.list.length !== 0) {
-              fillList(list, answer.list, pageId);
-            } else {
-              if (pageId === 0) {
-                list.empty();
-                list.append('<h3 class="form-signin-heading" align="center">У Вас нет загруженных ШТЗ.</h3>');
-              } else {
-                USER_MESSAGE(this.panelId, 'Это последняя страница.', 25, 7);
-              }
-            }
+      getListCallback(pageId, answer => {
+        if (answer.ok) {
+          if (answer.list.length !== 0) {
+            fillList(list, answer.list, pageId);
           } else {
-            OOOPS_MESSAGE(this.panelId);
+            if (pageId === 0) {
+              list.empty();
+              list.append('<h3 class="form-signin-heading" align="center">У Вас нет загруженных шаблонов.</h3>');
+            } else {
+              USER_MESSAGE(this.panelId, 'Это последняя страница.', 25, 7);
+            }
           }
-        })
-        .fail(() => {
-          SERVER_DOWN_MESSAGE(this.panelId);
-        });
+        } else {
+          OOOPS_MESSAGE(this.panelId);
+        }
+      });
     };
 
     loadListPage(0);
     $('#'+uploadTTTButtonId).on('click', () => {
+      uploadCallback(() => {
+        loadListPage(0);
+      });
+    });
+    $('#'+createTTTButtonId).on('click', () => {
+      createCallback();
+    });
+  }
+
+  actionsTemplateTestTasks(workspace) {
+    this.actions(workspace, (pageId, callback) => {
+      $.post('/view_list_ttt', {pageId:pageId})
+        .done(answer => {
+          callback(answer);
+        })
+        .fail(() => {
+          SERVER_DOWN_MESSAGE(this.panelId);
+        });
+    }, () => {
+      workspace.empty();
+      let editor = new TemplateTestTaskWeb();
+      editor.initialize(workspace.attr('id'), this.panelId);
+    }, callback => {
       LOAD_FILES(templateTestTask => {
         $.post('/upload_ttt', {templateTestTask: templateTestTask})
           .done(answer => {
             if (answer.ok) {
-              loadListPage(0);
+              callback();
             } else {
-              USER_MESSAGE(this.panelId, 'ШТЗ синтаксически не корректен.', 30, 9);
+              USER_MESSAGE(this.panelId, 'ШТЗ синтаксически не корректен.', 30, 7);
             }
           })
           .fail(() => {
             SERVER_DOWN_MESSAGE(this.panelId);
           });
       });
-    });
-    $('#'+createTTTButtonId).on('click', () => {
-      workspace.empty();
-      let editor = new TemplateTestTaskWeb();
-      editor.initialize(workspace.attr('id'), this.panelId);
+    }, data => {
+      $.post('/download_ttt', data)
+        .done(answer => {
+          if (answer.ok) {
+            workspace.empty();
+            let editor = new TemplateTestTaskWeb();
+            editor.load(workspace.attr('id'), this.panelId, answer.templateTestTask, data.templateId);
+          } else {
+            OOOPS_MESSAGE(this.panelId);
+          }
+        })
+        .fail(() => {SERVER_DOWN_MESSAGE(this.panelId);});
+    }, data => {
+      $.post('/download_ttt', data)
+        .done(answer => {
+          if (answer.ok) {
+            SAVE_FILE(JSON.stringify(answer.templateTestTask), 'TTT.json');
+          } else {
+            OOOPS_MESSAGE(this.panelId);
+          }
+        })
+        .fail(() => {SERVER_DOWN_MESSAGE(this.panelId);});
+    }, (data, callback) => {
+      SHOW_DIALOG(this.panelId, 'Вы действительно хотите удалить выбранный ШТЗ?', 35, 13, () => {
+        $.post('/remove_ttt', data)
+          .done(answer => {
+            if (answer.ok) {
+              callback();
+            } else {
+              OOOPS_MESSAGE(this.panelId);
+            }
+          })
+          .fail(() => {SERVER_DOWN_MESSAGE(this.panelId);});
+      });
     });
   }
 
   actionsTemplateTests(workspace) {
-    let templateTest = {title: '', orderType: 0, arrayTTT: []};
-    let cloudTemplateId = null;
+    this.actions(workspace, (pageId, callback) => {
+      $.post('/view_list_template_test', {pageId:pageId})
+        .done(answer => {
+          callback(answer);
+        })
+        .fail(() => {
+          SERVER_DOWN_MESSAGE(this.panelId);
+        });
+    }, () => {
+      workspace.empty();
+      this.templateTestEditor(workspace);
+    }, callback => {
+      LOAD_FILES(templateTest => {
+        $.post('/upload_template_test', {templateTest: templateTest})
+          .done(answer => {
+            if (answer.ok) {
+              callback();
+            } else {
+              USER_MESSAGE(this.panelId, 'ШТ синтаксически не корректен.', 30, 7);
+            }
+          })
+          .fail(() => {
+            SERVER_DOWN_MESSAGE(this.panelId);
+          });
+      });
+    }, data => {
+      $.post('/download_template_test', data)
+        .done(answer => {
+          if (answer.ok) {
+            workspace.empty();
+            this.templateTestEditor(workspace, answer.templateTest, data.templateId);
+          } else {
+            OOOPS_MESSAGE(this.panelId);
+          }
+        })
+        .fail(() => {SERVER_DOWN_MESSAGE(this.panelId);});
+    }, data => {
+      $.post('/download_template_test', data)
+        .done(answer => {
+          if (answer.ok) {
+            SAVE_FILE(JSON.stringify(answer.templateTest), 'templateTest.json');
+          } else {
+            OOOPS_MESSAGE(this.panelId);
+          }
+        })
+        .fail(() => {SERVER_DOWN_MESSAGE(this.panelId);});
+    }, (data, callback) => {
+      SHOW_DIALOG(this.panelId, 'Вы действительно хотите удалить выбранный ШТ?', 35, 13, () => {
+        $.post('/remove_template_test', data)
+          .done(answer => {
+            if (answer.ok) {
+              callback();
+            } else {
+              OOOPS_MESSAGE(this.panelId);
+            }
+          })
+          .fail(() => {SERVER_DOWN_MESSAGE(this.panelId);});
+      });
+    }, data => {
+      let windowId = 'windowInnerId';
+      let okButtonId = 'okButtonInnerId';
+      let cancelButtonId = 'cancelButtonInnerId';
+      let inputDataId = 'inputDataId';
+      this.panel.append(
+        '<div class="panel panel-default" align="center" id="' + windowId + '" style="' + CENTER_POSITION_STYLE(25, 15) + '">' +
+        '<div class="panel-body">' +
+        '<h3 class="form-signin-heading" align="center">Введите число тестов</h3>' +
+        '<div class="input-group"><input id="' + inputDataId + '" type="number" class="form-control" placeholder="(1-100)"></div>' +
+        '<div class="btn-group-horizontal btn-group-lg top-buffer-20" role="group" align="center">' +
+        '<button type="button" class="btn btn-default" id="' + okButtonId + '">Да</button>' +
+        '<button type="button" class="btn btn-default left-buffer-20" id="' + cancelButtonId + '">Отмена</button>' +
+        '</div></div></div>');
+      let input = $('#'+inputDataId);
+      $('#'+okButtonId).on('click', () => {
+        if (isNaN(+input.val()) || +input.val() > 100 || +input.val() < 1) {
+          USER_MESSAGE(this.panelId, 'Некорректное число тестов.', 30, 7);
+          return;
+        }
+        $('#'+windowId).remove();
+        window.open('/generate_gift?numberTest='+input.val()+'&templateId='+data.templateId, '_blank');
+      });
+      $('#'+cancelButtonId).on('click', () => {$('#'+windowId).remove();});
+    });
+  }
+
+  templateTestEditor(workspace, data, templateId) {
+    let templateTest = (data === undefined) ? {title: '', orderType: 0, arrayTTT: []} : data;
+    let cloudTemplateId = (templateId === undefined) ? null : templateId;
     let inputTitleId = 'inputTitleId';
     let selectOrderTypeId = 'selectOrderTypeId';
     let addTTTButtonId = 'addTTTButtonId';
@@ -415,8 +535,9 @@ class NavigationView {
       '</div>' +
       '</div>');
     $('select').selectpicker();
-    $('#'+inputTitleId).on('input change', function () {
-      templateTest.title = $(this).val();
+    let inputTitle = $('#'+inputTitleId);
+    inputTitle.on('input change', () => {
+      templateTest.title = inputTitle.val();
     });
     let selectTag = $('#'+selectOrderTypeId);
     selectTag.on('input change', () => {
@@ -545,22 +666,22 @@ class NavigationView {
     });
     $('#'+uploadButtonId).on('click', () => {
       if (cloudTemplateId === null) {
-        $.post('/upload_template_test', {templateTest: templateTest})
+        $.post('/upload_template_test', {templateTest: JSON.stringify(templateTest)})
           .done(answer => {
             if (answer.ok) {
               cloudTemplateId = answer.templateId;
             } else {
-              USER_MESSAGE(this.panelId, 'ШТ синтаксически не корректен.', 30, 9);
+              USER_MESSAGE(this.panelId, 'ШТ синтаксически не корректен.', 30, 7);
             }
           })
           .fail(() => {
             SERVER_DOWN_MESSAGE(this.panelId);
           });
       } else {
-        $.post('/update_template_test', {templateTest: templateTest, templateId: cloudTemplateId})
+        $.post('/update_template_test', {templateTest: JSON.stringify(templateTest), templateId: cloudTemplateId})
           .done(answer => {
             if (!answer.ok) {
-              USER_MESSAGE(this.panelId, 'ШТ синтаксически не корректен.', 30, 9);
+              USER_MESSAGE(this.panelId, 'ШТ синтаксически не корректен.', 30, 7);
             } else {
               USER_MESSAGE(this.panelId, 'ШТ обновлен.', 20, 7);
             }
@@ -571,7 +692,14 @@ class NavigationView {
       }
     });
 
-    selectTag.val("0");
+    if (data === undefined) {
+      selectTag.val("0");
+    } else {
+      selectTag.val(''+templateTest.orderType);
+      inputTitle.val(templateTest.title);
+    }
+    inputTitle.change();
     selectTag.change();
+    updateListTemplates();
   }
 }
