@@ -154,8 +154,9 @@ class TemplateTestView {
 
   generateGIFT(directoryName, prefixName, number) {
     const fs = require('fs');
+    const path = require('path');
     for (let i = 0; i < number; ++i) {
-      fs.writeFileSync(directoryName + '\\' + prefixName + i + '.gift', this.internal.generateGIFT());
+      fs.writeFileSync(path.join(directoryName[0],  prefixName + i + '.gift'), this.internal.generateGIFT());
     }
   }
 }

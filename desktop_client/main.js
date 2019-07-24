@@ -49,6 +49,9 @@ app.on('ready', function() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 720,
-    title: 'Диплом'
+    title: 'Диплом',
+    webPreferences: {
+      nodeIntegration: true
+    }
   });
 });
