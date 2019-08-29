@@ -513,7 +513,7 @@ class NavigationView {
       '<div class="row">' +
       '<div class="col-md-12">' +
       '<h3 class="form-signin-heading" align="left">Тема тестового шаблона</h3>' +
-      '<div class="input-group"><input id="' + inputTitleId + '" type="text" class="form-control" placeholder="Тема ШТ"></div>' +
+      '<div class="input-group"><input id="' + inputTitleId + '" type="text" class="form-control" placeholder="Тема ШТ" style="width:35em"></div>' +
       '</div></div><div class="row">' +
       '<div class="col-md-12">' +
       '<h3 class="form-signin-heading" align="left">Порядок тестовых заданий</h3>' +

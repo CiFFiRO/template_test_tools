@@ -44,7 +44,7 @@ class TemplateTestTaskView {
   initializeTitle(tagId, data) {
     $('#'+tagId).append('<div>' +
       '<h1 class="form-signin-heading" align="left">Заголовок шаблона тестового задания</h1>' +
-      '<div class="input-group"><input id="' + this.titleInputId + '" type="text" class="form-control" placeholder="Заголовок"></div>' +
+      '<div class="input-group"><input id="' + this.titleInputId + '" type="text" class="form-control" placeholder="Заголовок" style="width:35em"></div>' +
       '</div>');
 
     let title = $('#' + this.titleInputId);
@@ -61,9 +61,9 @@ class TemplateTestTaskView {
     $('#'+tagId).append('<div>' +
       '<h1 class="form-signin-heading" align="left">Тип шаблона тестового задания</h1>' +
       '<select title="Тип ШТЗ" class="selectpicker" id="'+ this.testTypeId + '">' +
-      '<option value="0">Самостоятельный ввод ответа</option>' +
-      '<option value="1">Единственный выбор</option>' +
-      '<option value="2">Множество выборов</option>' +
+      '<option value="0">Short answer</option>' +
+      '<option value="1">Single choice</option>' +
+      '<option value="2">Multiple choice</option>' +
       '</select></div>');
     $('select').selectpicker();
     let typeSelect = $('#' + this.testTypeId);
@@ -88,8 +88,8 @@ class TemplateTestTaskView {
   initializeRules(tagId, data) {
     let tag = $('#'+tagId);
     tag.append('<div id="' + this.ruleHeadId + '"><ul class="list-inline">' +
-      '<li><h1 class="form-signin-heading" align="center">Правила и продукции</h1></li>' +
-      '<li><button id="' + this.addRuleButtomId + '" type="button" class="btn btn-success"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></button></li></ul></div>');
+      '<li><h1 class="form-signin-heading" align="center">Продукции грамматики</h1></li>' +
+      '<li><button id="' + this.addRuleButtomId + '" type="button" class="btn btn-success" style="margin-bottom:12px;"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></button></li></ul></div>');
     $('#' + this.addRuleButtomId).on('click', function() {
       this.addRule();
     }.bind(this));
@@ -113,9 +113,9 @@ class TemplateTestTaskView {
 
     $('#' + this.ruleHeadId).append('<div id="' + ruleId + '">' +
       '<ul class="list-inline">' +
-      '<li><div class="input-group"><input id="' + ruleInputId + '" type="text" class="form-control" placeholder="Имя правила"></div></li>' +
-      '<li><button id="' + this.productionAddIdPrefix + ruleId + '" type="button" class="btn btn-success" disabled><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></button></li>' +
-      '<li><button id="' + this.ruleRemoveIdPrefix + ruleId + '" type="button" class="btn btn-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button></li>' +
+      '<li><div class="input-group"><input id="' + ruleInputId + '" type="text" class="form-control" placeholder="Левая часть продукции"></div></li>' +
+      '<li><button id="' + this.productionAddIdPrefix + ruleId + '" type="button" class="btn btn-success" style="margin-bottom:25px;" disabled><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></button></li>' +
+      '<li><button id="' + this.ruleRemoveIdPrefix + ruleId + '" type="button" class="btn btn-danger" style="margin-bottom:25px;"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button></li>' +
       '</ul></div>');
     $('#' + this.productionAddIdPrefix + ruleId).on('click', function() {
       this.addProduction(ruleId);
@@ -172,8 +172,8 @@ class TemplateTestTaskView {
 
     $('#' + ruleId).append('<div id="' + productionId + '">' +
       '<ul class="list-inline">' +
-      '<li><div class="input-group"><textarea id="' + productionInputId + '" cols="40" rows="3" class="form-control" placeholder="Текст продукции"></textarea></div></li>' +
-      '<li><button id="' + this.productionRemoveIdPrefix + productionId + '" type="button" class="btn btn-danger"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button></li>' +
+      '<li><div class="input-group" style="margin-left:20px;"><textarea id="' + productionInputId + '" cols="40" rows="3" class="form-control" placeholder="Правая часть продукции"></textarea></div></li>' +
+      '<li><button id="' + this.productionRemoveIdPrefix + productionId + '" type="button" class="btn btn-danger" style="margin-bottom:25px;"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button></li>' +
       '</ul></div>');
     $('#' + this.productionRemoveIdPrefix + productionId).on('click', function () {
       this.removeProduction(ruleId, productionId);
@@ -260,8 +260,8 @@ class TemplateTestTaskView {
   initializeAnswerScript(tagId, data) {
     let tag = $('#'+tagId);
     tag.append('<div>' +
-      '<h1 class="form-signin-heading" align="left">Скрипт вычисления ответа</h1>' +
-      '<div class="input-group"><textarea id="' + this.answerScriptId + '" cols="100" rows="10" class="form-control" placeholder="Скрипт вычисления ответа"></textarea></div>' +
+      '<h1 class="form-signin-heading" align="left">Скрипт обратной связи</h1>' +
+      '<div class="input-group"><textarea id="' + this.answerScriptId + '" cols="100" rows="10" class="form-control" placeholder="Скрипт обратной связи"></textarea></div>' +
       '</div>');
     let scriptTag = $('#' + this.answerScriptId);
     this.codeMirror = CodeMirror.fromTextArea(scriptTag[0], {
