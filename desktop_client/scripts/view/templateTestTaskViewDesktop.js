@@ -7,7 +7,7 @@ class TemplateTestTaskDesktop {
 
     const { dialog } = require('electron').remote;
     this.saveSyntaxError = () => {
-      return dialog.showMessageBox({
+      return dialog.showMessageBoxSync({
         type: 'error',
         title: 'Ошибка',
         message: 'Вы не можете сохранить ШТЗ с синтаксическими ошибками!',
@@ -35,7 +35,7 @@ class TemplateTestTaskDesktop {
 
     if (this.fileName === null && fileName === undefined) {
       const { dialog } = require('electron').remote;
-      fileName = dialog.showSaveDialog({
+      fileName = dialog.showSaveDialogSync({
         filters: [
           { name: 'ШТЗ', extensions: ['json'] }
         ]

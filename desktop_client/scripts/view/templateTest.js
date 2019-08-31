@@ -134,7 +134,7 @@ class TemplateTestView {
   save(fileName) {
     if (this.fileName === null && fileName === undefined) {
       const { dialog } = require('electron').remote;
-      fileName = dialog.showSaveDialog({
+      fileName = dialog.showSaveDialogSync({
         filters: [
           { name: 'ШТ', extensions: ['json'] }
         ]

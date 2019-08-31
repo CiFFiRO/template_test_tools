@@ -6,17 +6,19 @@
   <link href="external/bootstrap-select.css" rel="stylesheet" type="text/css">
   <link href="external/codemirror/codemirror.css" rel="stylesheet" type="text/css">
   <link href="external/codemirror/darcula.css" rel="stylesheet" type="text/css">
-  <script>window.$ = window.jQuery = require('jquery');</script>
+  <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
+  <script type="text/javascript" src="external/jquery-3.3.1.js"></script>
   <script type="text/javascript" src="external/bootstrap-3.3.7/js/bootstrap.js"></script>
   <script type="text/javascript" src="external/bootstrap-select.js"></script>
   <script type="text/javascript" src="external/codemirror/codemirror.js"></script>
   <script type="text/javascript" src="external/codemirror/javascript.js"></script>
   <script type="text/javascript" src="external/codemirror/active-line.js"></script>
   <script type="text/javascript" src="external/codemirror/matchbrackets.js"></script>
-  <script type="text/javascript" src="../tools/editor/templateTestTaskInternal.js"></script>
+  <script type="text/javascript" src="tools/editor/templateTestTaskInternal.js"></script>
   <script type="text/javascript" src="scripts/internal/templateTest.js"></script>
   <script type="text/javascript" src="scripts/view/templateTest.js"></script>
   <script type="text/javascript" src="scripts/common.js"></script>
+  <script>if (window.module) module = window.module;</script>
   <script type="text/javascript">
     $(document).ready(function () {
       window.debugStatus = true;
@@ -27,7 +29,7 @@
       const { Menu, MenuItem, dialog, globalShortcut } = remote;
 
       let warningLoseChanges = () => {
-        return dialog.showMessageBox({
+        return dialog.showMessageBoxSync({
           type: 'warning',
           title: 'Предупреждение',
           message: 'Все не сохраненные изменения будут потеряны!',
@@ -43,7 +45,7 @@
         templateTestView.save();
       };
       let saveAsAction = function () {
-        let fileName = dialog.showSaveDialog({
+        let fileName = dialog.showSaveDialogSync({
           filters: [
             { name: 'ШТЗ', extensions: ['json'] }
           ]
@@ -61,7 +63,7 @@
           return;
         }
 
-        let directoryName = dialog.showOpenDialog({
+        let directoryName = dialog.showOpenDialogSync({
           properties: ['openDirectory']
         });
         if (directoryName === undefined) {

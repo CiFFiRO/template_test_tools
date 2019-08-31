@@ -11,7 +11,7 @@ function LOG(message) {
 function READ_SINGLE_FILE() {
   const { dialog } = require('electron').remote;
   const fs = require('fs');
-  let fileName = dialog.showOpenDialog({
+  let fileName = dialog.showOpenDialogSync({
     filters: [
       { name: 'ШТЗ', extensions: ['json'] }
     ]
@@ -27,7 +27,7 @@ function READ_SINGLE_FILE() {
 function READ_MULTIPLE_FILES() {
   const { dialog } = require('electron').remote;
   const fs = require('fs');
-  let fileNames = dialog.showOpenDialog({
+  let fileNames = dialog.showOpenDialogSync({
     filters: [
       { name: 'ШТЗ', extensions: ['json'] }
     ],

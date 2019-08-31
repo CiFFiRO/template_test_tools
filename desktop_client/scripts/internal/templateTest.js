@@ -28,7 +28,7 @@ class TemplateTestInternal {
   }
 
   addTTT(ttt) {
-    const translator = require('../tools/translator/translator');
+    const translator = require('./tools/translator/translator');
 
     try {
       translator.checkTTT(ttt);
@@ -59,7 +59,7 @@ class TemplateTestInternal {
       throw new Error('TemplateTestInternal:generateGIFT order type not set');
     }
 
-    const translator = require('../tools/translator/translator');
+    const translator = require('./tools/translator/translator');
 
     let tasks = [];
     for (let i=0;i<this.arrayTTT.length;++i) {
