@@ -48,10 +48,58 @@ function test_positiveTranslator() {
   });
 }
 
-function run() {
-  for (let i=0;i<100;++i) {
-    test_positiveTranslator();
+function test_positiveTemplateTestTaskGrammarTranslation() {
+  let testCases = [
+    ['a=asd.',
+      {a:['asd']}],
+    ['a=asd|zxc$|.\n\nb=[1|2|2+${a}]].',
+      {a:['asd', 'zxc|'], b:['1','2','2+${a}]','']}],
+    ['a=$|$${b}|qwe$|. b=${a}zxc|${a}qwe. c=[${b}${a}].',
+      {a:['|$${b}', 'qwe|'], b:['${a}zxc', '${a}qwe'], c:['${b}${a}', '']}],
+    ['a=[123|3.b=3]|4].',
+      {a:['[123', '3'], b:['3]', '4]']}],
+    ['a=[$|$rInteger(5,123)|$|$rFloat(1,4.2,3).b=2+${a}|2-${a}.',
+      {a:['[|$rInteger(5,123)', '|$rFloat(1,4.2,3)'], b:['2+${a}', '2-${a}']}],
+    ['a=..$||$|...b=[..${a}....].',
+      {a:['.|', '|.'], b:['.${a}..', '']}],
+    ['                ', {}]
+  ];
+
+  for (let i=0;i<testCases.length;++i) {
+    ASSERT.doesNotThrow(function (){
+      let template = translator.templateTestTaskFormToTemplate('', 0, testCases[i][0], '' ,'');
+      ASSERT.deepEqual(template['rules'], testCases[i][1], `In grammar ${testCases[i][0]} map ${
+        JSON.stringify(template['rules'])} is not equal ${JSON.stringify(testCases[i][1])}`);
+      translator.checkTemplateTest(template);
+    });
   }
+}
+
+function test_negativeTemplateTestTaskGrammarTranslation() {
+  let testCases = [
+    'a=asd', 'aasd.', 'a=asd|zxc|.\n\nb=[1|2|2+${a}]].', 'a=asd||zxc$|.\n\nb=[1|2|2+${a}]].',
+    'a=asd|zxc$|.\n\nb=[1|2|2+${b}]].', 'a=asd|zxc$|.\n\nb=[1|2|2+${a}]]', 'a=asd|zxc$|.\n\nb=[1|2|2+${a}]]..',
+    'a=asd|zxc$|.\n\nb=[1|2|2+${a}]]', 'a=asd|zxc$|\n\nb=[1|2|2+${a}]].',
+    'a=$|${b}|qwe$|. b=${a}zxc|${a}qwe. c=[${b}${a}].',
+    'a=[$|$rInteger(5,123)|$|$rFloat(1,4.2,3).b=2+${a}|2-${b}.',
+    'a=..$||$|..b=[..${a}....].',
+    '     .      ', 'a = 123 .', 'a=.', 'asd.', 'as'];
+
+  for (let i=0;i<testCases.length;++i) {
+    ASSERT.throws(function (){
+      let template = translator.templateTestTaskFormToTemplate('', 0, testCases[i], '' ,'');
+      console.log(testCases[i]);
+      console.log(JSON.stringify(template['rules']));
+    });
+  }
+}
+
+function run() {
+  test_positiveTemplateTestTaskGrammarTranslation();
+  test_negativeTemplateTestTaskGrammarTranslation();
+  // for (let i=0;i<100;++i) {
+  //   test_positiveTranslator();
+  // }
 }
 
 

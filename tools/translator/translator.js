@@ -1,6 +1,6 @@
 const SPECIAL_FUNCTIONS_RE = 'rInteger\\(\\s*[+-]?[0-9]+\\s*,\\s*[+-]?[0-9]+\\s*\\)|' +
   'rFloat\\(\\s*[-+]?(?:\\d*\\.?\\d+|\\d+\\.?\\d*)(?:[eE][-+]?\\d+)?\\s*,' +
-  '\\s*[-+]?(?:\\d*\\.?\\d+|\\d+\\.?\\d*)(?:[eE][-+]?\\d+)?\\s*\\)|' +
+  '\\s*[-+]?(?:\\d*\\.?\\d+|\\d+\\.?\\d*)(?:[eE][-+]?\\d+)?\\s*,\\s*[1-9]+[0-9]*\\s*\\)|' +
   'rElement\\(\\s*(\\s*[a-zA-Z0-9]+\\s*,)*\\s*[a-zA-Z0-9]+\\s*\\)';
 const PREGENERATED_ANSWER_SCRIPT_PART = '' +
   'let __FALSE_OPTIONS = [];' +
@@ -47,7 +47,7 @@ const PREGENERATED_ANSWER_SCRIPT_PART = '' +
   'function __END_SCRIPT() {\n' +
   '  return [__ANSWER, __FALSE_OPTIONS];\n' +
   '}';
-const INPUT_TYPE = 0;
+const SHORT_ANSWER_TYPE = 0;
 const SINGLE_CHOOSE_TYPE = 1;
 const MULTIPLE_CHOOSE_TYPE = 2;
 
@@ -65,7 +65,7 @@ function rInteger(min, max) {
 
 function rFloat(min, max, length) {
   let value = Math.random() * (max - min) + min;
-
+  return value.toFixed(length);
 }
 
 function rElement(elements) {
@@ -116,42 +116,149 @@ function isSpace(aChar) {
   return false;
 }
 
-function  checkTTT (ttt) {
-  if (!ttt.hasOwnProperty('title') || !ttt.hasOwnProperty('type') || !ttt.hasOwnProperty('rules')
-    || !ttt.hasOwnProperty('testText') || !ttt.hasOwnProperty('answerScript')) {
+function CheckTemplateTestTaskGrammar(grammar) {
+  let alternativeRegExp = `([^$|.]|\\.\\.|\\$\\||\\$\\$|\\$(${SPECIAL_FUNCTIONS_RE})|\\$\\{\\s*[0-9a-zA-Z]+\\s*\\})+`;
+  let grammarRegExp = new RegExp(`^\\s*([0-9a-zA-Z]+=((${alternativeRegExp}(\\|${alternativeRegExp})*)|(\\[${alternativeRegExp}(\\|${alternativeRegExp})*\\]))\\.\\s*)*$`);
+  return grammarRegExp.test(grammar);
+}
+
+function templateTestTaskFormToTemplate(header, type, grammar, textTask, feedbackScript) {
+  if (typeof header !== 'string' || typeof grammar !== 'string' ||
+    typeof textTask !== 'string' || typeof feedbackScript !== 'string' || typeof type !== 'number') {
+    throw Error('Argument(s) type not a string');
+  }
+  if (type < SHORT_ANSWER_TYPE || type > MULTIPLE_CHOOSE_TYPE) {
+    throw Error('Type test task is not current');
+  }
+  if (!CheckTemplateTestTaskGrammar(grammar)) {
+    throw Error('Grammar has syntax error');
+  }
+
+  let rules = {};
+  for (let i=0;i<grammar.length;) {
+    let beginNonTerminal=-1;
+    while(i < grammar.length && isSpace(grammar[i])) ++i;
+    if (i === grammar.length) {
+      break;
+    }
+    beginNonTerminal = i;
+    while(grammar[i] !== '=') ++i;
+    let nonTerminal = grammar.substring(beginNonTerminal, i);
+    if (nonTerminal in rules) {
+      throw Error(`Redefine non terminal ${nonTerminal}`);
+    }
+    rules[nonTerminal] = [];
+    ++i;
+    let condition = false;
+    if (grammar[i] === '[') {
+      condition = true;
+      ++i;
+    }
+    let beginAlternative = i;
+    while (i < grammar.length) {
+      if (grammar[i] === '.') {
+        if (i+1 === grammar.length || grammar[i+1] !== '.') {
+          let endAlternative = i;
+          if (condition && grammar[i-1] === ']') {
+            --endAlternative;
+          } else if (condition) {
+            rules[nonTerminal][0] = '[' + rules[nonTerminal][0];
+            condition = false;
+          }
+          let alternative = grammar.substring(beginAlternative, endAlternative);
+          alternative = alternative.replace(/\$\|/g, '|');
+          alternative = alternative.replace(/\.\./g, '.');
+          rules[nonTerminal].push(alternative);
+          ++i;
+          break;
+        } else {
+          i += 2;
+        }
+      }
+      else if (grammar[i] === '|') {
+        let alternative = grammar.substring(beginAlternative, i);
+        alternative = alternative.replace(/\$\|/g, '|');
+        alternative = alternative.replace(/\.\./g, '.');
+        rules[nonTerminal].push(alternative);
+        ++i;
+        beginAlternative = i;
+      }
+      else if (grammar[i] === '$') {
+        if (grammar[i+1] === '$') {
+          i += 2;
+        } else if (grammar[i+1] === '{') {
+          i += 2;
+          while(isSpace(grammar[i])) ++i;
+          let beginNonTerminalName = i;
+          while(!isSpace(grammar[i]) && grammar[i] !== '}') ++i;
+          let nonTerminalName = grammar.substring(beginNonTerminalName, i);
+          ++i;
+          if (!(nonTerminalName in rules) || nonTerminalName === nonTerminal) {
+            throw Error(`Use not previously defined non terminal ${nonTerminalName} in the definition ${nonTerminal}`);
+          }
+        } else if (grammar[i+1] === '|') {
+          i += 2;
+        } else {
+          while (grammar[i] !== '(') ++i;
+          ++i;
+          while (grammar[i] !== ')') ++i;
+          ++i;
+        }
+      }
+      else {
+        ++i;
+      }
+    }
+
+    if (condition) {
+      rules[nonTerminal].push('');
+    }
+  }
+
+  return {title:header, type:type, rules:rules, testText: textTask, feedbackScript:feedbackScript};
+}
+
+function checkTemplateTestTask(templateTestTask) {
+  if (!templateTestTask.hasOwnProperty('title') || !templateTestTask.hasOwnProperty('type') || !templateTestTask.hasOwnProperty('rules')
+    || !templateTestTask.hasOwnProperty('testText') || !templateTestTask.hasOwnProperty('feedbackScript')) {
     throw Error('Bad json data');
   }
-  if (typeof ttt['type'] !== 'number' || ttt['type'] < 0 || ttt['type'] > 2) {
-    throw Error('Bad TTT type');
+  if (typeof templateTestTask['type'] !== 'number' || 
+    templateTestTask['type'] < SHORT_ANSWER_TYPE || templateTestTask['type'] > MULTIPLE_CHOOSE_TYPE) {
+    throw Error('Bad template test task type');
   }
-  let rules = new Set();
-  for (let rule in ttt['rules']) {
-    if (ttt['rules'].hasOwnProperty(rule)) {
-      if (!/^[0-9a-zA-Z]+$/.test(rule)) {
-        throw Error('Rule name has syntax error - ' + rule);
+  let nonTerminals = new Set();
+  let nonTerminalsNamesRegExp = '';
+  for (let nonTerminal in templateTestTask['rules']) {
+    if (templateTestTask['rules'].hasOwnProperty(nonTerminal)) {
+      if (!/^[0-9a-zA-Z]+$/.test(nonTerminal)) {
+        throw Error(`Non terminal name has syntax error - ${nonTerminal}`);
       }
-      if (rules.has(rule)) {
-        throw Error('Duplicate rules name - ' + rule);
+      if (nonTerminals.has(nonTerminal)) {
+        throw Error(`Duplicate non terminal name - ${nonTerminal}`);
       }
-      rules.add(rule);
-      let regexp = new RegExp('^([^$]|\\$\\$|\\$(' + SPECIAL_FUNCTIONS_RE + ')+)*$');
-      for (let i = 0; i < ttt['rules'][rule].length; ++i) {
-        if (!regexp.test(ttt['rules'][rule][i])) {
-          throw Error('Production has syntax error in rule - ' + rule);
+      nonTerminals.add(nonTerminal);
+      if (nonTerminalsNamesRegExp.length > 0) {
+        nonTerminalsNamesRegExp += '|' + nonTerminal;
+      }
+      let regexp = new RegExp(`^([^$]|\\$\\$|\\$(${SPECIAL_FUNCTIONS_RE})|\\$\\{\\s*(${nonTerminalsNamesRegExp})\\s*\\})*$`);
+      for (let i = 0; i < templateTestTask['rules'][nonTerminal].length; ++i) {
+        if (!regexp.test(templateTestTask['rules'][nonTerminal][i])) {
+          throw Error(`Non terminal ${nonTerminal} alternative has syntax error`);
         }
       }
     }
   }
 
-  let ruleNames = '';
-  for (let name of rules) {
-    ruleNames += name + '|';
+  let nonTerminalNames = '';
+  for (let name of nonTerminals) {
+    nonTerminalNames += name + '|';
   }
-  ruleNames = ruleNames.substr(0, ruleNames.length - 1);
+  nonTerminalNames = nonTerminalNames.substr(0, nonTerminalNames.length - 1);
 
-  let checkRegExpPattern = '^([^$]|\\$\\$|\\$\\{\\s*(' + ruleNames + ')\\s*\\}+)*$';
+  let checkRegExpPattern = '^([^$]|\\$\\$|\\$\\{\\s*(' + nonTerminalNames + ')\\s*\\}+)*$';
   let checkRegExp = new RegExp(checkRegExpPattern);
-  if (!checkRegExp.test(ttt['testText'])) {
+  if (!checkRegExp.test(templateTestTask['testText'])) {
     throw new Error('Test text has syntax error')
   }
 }
@@ -374,7 +481,8 @@ function generateTestTaskFromTTT (ttt) {
 }
 
 module.exports = {
-  checkTTT: checkTTT,
+  templateTestTaskFormToTemplate: templateTestTaskFormToTemplate,
+  checkTemplateTestTask: checkTemplateTestTask,
   generateTestTaskFromTTT: generateTestTaskFromTTT,
   checkTemplateTest: function (templateTest) {
     if (!templateTest.hasOwnProperty('orderType') || !templateTest.hasOwnProperty('arrayTTT') ||
