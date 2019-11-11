@@ -9,12 +9,12 @@ function test_positiveTranslator() {
       let data = FS.readFileSync(fileNames[i]);
       let ttt = JSON.parse(data);
       ASSERT.doesNotThrow(function () {
-        translator.checkTTT(ttt);
+        translator.checkTemplateTest(ttt);
       });
       ASSERT.doesNotThrow(function () {
-        //console.log(fileName);
-        let tt = translator.generateTestTaskFromTTT(ttt);
-        result.push(tt);
+        //console.log(fileNames[i]);
+        let tt = translator.generateTestTaskFromTemplateTestTask(ttt);
+        //result.push(tt);
         //console.log(tt);
       });
     }
@@ -83,7 +83,7 @@ function test_negativeTemplateTestTaskGrammarTranslation() {
     'a=$|${b}|qwe$|. b=${a}zxc|${a}qwe. c=[${b}${a}].',
     'a=[$|$rInteger(5,123)|$|$rFloat(1,4.2,3).b=2+${a}|2-${b}.',
     'a=..$||$|..b=[..${a}....].',
-    '     .      ', 'a = 123 .', 'a=.', 'asd.', 'as'];
+    '     .      ', 'a = 123 .', 'a=.', 'asd.', 'as', 'asd=as$.'];
 
   for (let i=0;i<testCases.length;++i) {
     ASSERT.throws(function (){
@@ -97,9 +97,9 @@ function test_negativeTemplateTestTaskGrammarTranslation() {
 function run() {
   test_positiveTemplateTestTaskGrammarTranslation();
   test_negativeTemplateTestTaskGrammarTranslation();
-  // for (let i=0;i<100;++i) {
-  //   test_positiveTranslator();
-  // }
+  for (let i=0;i<100;++i) {
+    test_positiveTranslator();
+  }
 }
 
 

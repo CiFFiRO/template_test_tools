@@ -1,1 +1,1 @@
-{"title":"simple_0","type":0,"rules":{"p1":["значение","тип"],"p2":["JavaScript","PHP"]},"testText":"Результат выражения '1' + '2' в ЯП ${p2} имеет ${p1}","answerScript":"let answer = [['\\\"12\\\"', 12], ['string', 'int']];\n\n$$AnswerIs(answer[$p1][$p2]);"}
+{"title":"simple_0","type":0,"rules":{"p1":["значение","тип"],"p2":["JavaScript","PHP"]},"testText":"Результат выражения '1' + '2' в ЯП ${p2} имеет ${p1}","feedbackScript":"let answer = [['\\\"12\\\"', 12], ['string', 'int']];\n\n$$AnswerIs(answer[$p1][$p2]);"}

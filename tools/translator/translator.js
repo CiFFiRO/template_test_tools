@@ -1,6 +1,6 @@
-const SPECIAL_FUNCTIONS_RE = 'rInteger\\(\\s*[+-]?[0-9]+\\s*,\\s*[+-]?[0-9]+\\s*\\)|' +
+const FUNCTIONS_RE = 'rInteger\\(\\s*[+-]?[0-9]+\\s*,\\s*[+-]?[0-9]+\\s*\\)|' +
   'rFloat\\(\\s*[-+]?(?:\\d*\\.?\\d+|\\d+\\.?\\d*)(?:[eE][-+]?\\d+)?\\s*,' +
-  '\\s*[-+]?(?:\\d*\\.?\\d+|\\d+\\.?\\d*)(?:[eE][-+]?\\d+)?\\s*,\\s*[1-9]+[0-9]*\\s*\\)|' +
+  '\\s*[-+]?(?:\\d*\\.?\\d+|\\d+\\.?\\d*)(?:[eE][-+]?\\d+)?\\s*,\\s*[+]?[1-9]+[0-9]*\\s*\\)|' +
   'rElement\\(\\s*(\\s*[a-zA-Z0-9]+\\s*,)*\\s*[a-zA-Z0-9]+\\s*\\)';
 const PREGENERATED_ANSWER_SCRIPT_PART = '' +
   'let __FALSE_OPTIONS = [];' +
@@ -117,7 +117,7 @@ function isSpace(aChar) {
 }
 
 function CheckTemplateTestTaskGrammar(grammar) {
-  let alternativeRegExp = `([^$|.]|\\.\\.|\\$\\||\\$\\$|\\$(${SPECIAL_FUNCTIONS_RE})|\\$\\{\\s*[0-9a-zA-Z]+\\s*\\})+`;
+  let alternativeRegExp = `([^$|.]|\\.\\.|\\$\\||\\$\\$|\\$(${FUNCTIONS_RE})|\\$\\{\\s*[0-9a-zA-Z]+\\s*\\})+`;
   let grammarRegExp = new RegExp(`^\\s*([0-9a-zA-Z]+=((${alternativeRegExp}(\\|${alternativeRegExp})*)|(\\[${alternativeRegExp}(\\|${alternativeRegExp})*\\]))\\.\\s*)*$`);
   return grammarRegExp.test(grammar);
 }
@@ -241,7 +241,7 @@ function checkTemplateTestTask(templateTestTask) {
       if (nonTerminalsNamesRegExp.length > 0) {
         nonTerminalsNamesRegExp += '|' + nonTerminal;
       }
-      let regexp = new RegExp(`^([^$]|\\$\\$|\\$(${SPECIAL_FUNCTIONS_RE})|\\$\\{\\s*(${nonTerminalsNamesRegExp})\\s*\\})*$`);
+      let regexp = new RegExp(`^([^$]|\\$\\$|\\$(${FUNCTIONS_RE})|\\$\\{\\s*(${nonTerminalsNamesRegExp})\\s*\\})*$`);
       for (let i = 0; i < templateTestTask['rules'][nonTerminal].length; ++i) {
         if (!regexp.test(templateTestTask['rules'][nonTerminal][i])) {
           throw Error(`Non terminal ${nonTerminal} alternative has syntax error`);
@@ -263,12 +263,12 @@ function checkTemplateTestTask(templateTestTask) {
   }
 }
 
-function generateTestTaskFromTTT (ttt) {
+function generateTestTaskFromTemplateTestTask(templateTestTask) {
   let result = {};
-  result['type'] = ttt['type'];
+  result['type'] = templateTestTask['type'];
 
-  function replaceSpecialFunctions(production) {
-    function nextSpecialFunction(production) {
+  function replaceFunctions(production) {
+    function nextFunction(production) {
       let i = 0;
       while (i < production.length) {
         if (i + 1 < production.length && production[i] === '$' && production[i + 1] !== '$') {
@@ -305,7 +305,7 @@ function generateTestTaskFromTTT (ttt) {
 
     let result = production;
     while (true) {
-      let info = nextSpecialFunction(result);
+      let info = nextFunction(result);
       if (info === null) {
         break;
       }
@@ -314,12 +314,6 @@ function generateTestTaskFromTTT (ttt) {
       let arguments = info[3];
 
       if (name === 'rInteger') {
-        if (arguments.length !== 2) {
-          throw Error('rInteger: number of arguments is not 2');
-        }
-        if (isNaN(+arguments[0]) || isNaN(+arguments[1])) {
-          throw Error('rInteger: argument(s) not a number');
-        }
         let min = +arguments[0];
         let max = +arguments[1];
         if (min > max) {
@@ -329,25 +323,17 @@ function generateTestTaskFromTTT (ttt) {
         let value = rInteger(min, max);
         result = result.substring(0, info[0]) + value + result.substring(info[1]+1);
       } else if (name === 'rFloat') {
-        if (arguments.length !== 3) {
-          throw Error('rFloat: number of arguments is not 3');
-        }
-        if (isNaN(+arguments[0]) || isNaN(+arguments[1]) || isNaN(+arguments[2])) {
-          throw Error('rFloat: argument(s) not a number');
-        }
         let min = +arguments[0];
         let max = +arguments[1];
         let length = +arguments[2];
         if (min > max) {
           throw Error('rFloat: interval is not exist');
         }
-        if (length <= 0) {
-          throw Error('rFloat: length is not natural');
-        }
 
         let value = rFloat(min, max, length);
         result = result.substring(0, info[0]) + value + result.substring(info[1]+1);
       } else if (name === 'rElement') {
+        // TODO: протестить на работо способность
         if (arguments.length === 0) {
           throw Error('rElement: does not have arguments');
         }
@@ -355,35 +341,35 @@ function generateTestTaskFromTTT (ttt) {
         let value = arguments[getRandomInt(0, arguments.length)];
         result = result.substring(0, info[0]) + value + result.substring(info[1]+1);
       } else {
-        throw Error('Special function ' + name + ' is not exist');
+        throw Error('Function ' + name + ' is not exist');
       }
     }
 
     return result;
   }
 
-  let selectedProductionForRules = {};
-  let valueForRules = {};
-  for (let rule in ttt['rules']) {
-    if (ttt['rules'].hasOwnProperty(rule)) {
-      selectedProductionForRules[rule] = getRandomInt(0, ttt['rules'][rule].length);
-      valueForRules[rule] = replaceSpecialFunctions(ttt['rules'][rule][selectedProductionForRules[rule]]);
-    }
-  }
-
-  function replaceRules(text) {
+  let alternativeIndexForNonTerminals = {};
+  let alternativeForNonTerminals = {};
+  function replaceNonTerminals(text) {
     let result = text;
-    for (let rule in ttt['rules']) {
-      if (ttt['rules'].hasOwnProperty(rule)) {
-        let regexpScheme = '\\$\\{\\s*' + rule + '\\s*\\}';
+    for (let nonTerminal in templateTestTask['rules']) {
+      if (templateTestTask['rules'].hasOwnProperty(nonTerminal)) {
+        let regexpScheme = '\\$\\{\\s*' + nonTerminal + '\\s*\\}';
         let regexp = new RegExp(regexpScheme, 'g');
-        result = result.replace(regexp, valueForRules[rule]);
+        result = result.replace(regexp, alternativeForNonTerminals[nonTerminal]);
       }
     }
 
     result = result.replace(/\$\$/g, '$');
 
     return result;
+  }
+
+  for (let nonTerminal in templateTestTask['rules']) {
+    if (templateTestTask['rules'].hasOwnProperty(nonTerminal)) {
+      alternativeIndexForNonTerminals[nonTerminal] = getRandomInt(0, templateTestTask['rules'][nonTerminal].length);
+      alternativeForNonTerminals[nonTerminal] = replaceFunctions(replaceNonTerminals(templateTestTask['rules'][nonTerminal][alternativeIndexForNonTerminals[nonTerminal]]));
+    }
   }
 
   function removeEmptyStrings(text) {
@@ -410,25 +396,25 @@ function generateTestTaskFromTTT (ttt) {
     return result;
   }
 
-  let testText = replaceSpecialSymbolsGIFT(removeEmptyStrings(replaceRules(ttt['testText'])));
+  let testText = replaceSpecialSymbolsGIFT(removeEmptyStrings(replaceNonTerminals(templateTestTask['testText'])));
   if (testText.length === 0) {
     throw Error('Test task text is empty');
   }
 
   result['testText'] = testText;
 
-  let generatedAnswerScriptPart = 'let __TYPE_TEST_TASK = ' + ttt['type'] + ';\n';
-  for (let rule in ttt['rules']) {
-    if (ttt['rules'].hasOwnProperty(rule)) {
-      generatedAnswerScriptPart += 'let $' + rule + ' = ' + selectedProductionForRules[rule] + ';\n';
-      generatedAnswerScriptPart += 'let $' + rule + '_value = "' + valueForRules[rule].replace(/\n/g, '\\n') + '";\n';
-      for (let i=0;i<ttt['rules'][rule].length;++i) {
-        generatedAnswerScriptPart += 'let $' + rule + '_' + i + ' = ' + i + ';\n';
+  let generatedFeedbackScriptPart = 'let __TYPE_TEST_TASK = ' + templateTestTask['type'] + ';\n';
+  for (let rule in templateTestTask['rules']) {
+    if (templateTestTask['rules'].hasOwnProperty(rule)) {
+      generatedFeedbackScriptPart += 'let $' + rule + ' = ' + alternativeIndexForNonTerminals[rule] + ';\n';
+      generatedFeedbackScriptPart += 'let $' + rule + '_value = "' + alternativeForNonTerminals[rule].replace(/\n/g, '\\n') + '";\n';
+      for (let i=0;i<templateTestTask['rules'][rule].length;++i) {
+        generatedFeedbackScriptPart += 'let $' + rule + '_' + i + ' = ' + i + ';\n';
       }
     }
   }
 
-  let script = generatedAnswerScriptPart + PREGENERATED_ANSWER_SCRIPT_PART + ttt['answerScript'] + ';\n__END_SCRIPT();';
+  let script = generatedFeedbackScriptPart + PREGENERATED_ANSWER_SCRIPT_PART + templateTestTask['feedbackScript'] + ';\n__END_SCRIPT();';
   let value = null;
   try {
     value = eval(script);
@@ -459,11 +445,11 @@ function generateTestTaskFromTTT (ttt) {
     }
   });
 
-  if (ttt['type'] === SINGLE_CHOOSE_TYPE && answer.length > 1) {
+  if (templateTestTask['type'] === SINGLE_CHOOSE_TYPE && answer.length > 1) {
     throw Error('Multiple answer options');
   }
 
-  if (ttt['type'] === INPUT_TYPE) {
+  if (templateTestTask['type'] === SHORT_ANSWER_TYPE) {
     result['answers'] = answer;
   } else {
     result['trueOptions'] = answer;
@@ -483,7 +469,7 @@ function generateTestTaskFromTTT (ttt) {
 module.exports = {
   templateTestTaskFormToTemplate: templateTestTaskFormToTemplate,
   checkTemplateTestTask: checkTemplateTestTask,
-  generateTestTaskFromTTT: generateTestTaskFromTTT,
+  generateTestTaskFromTemplateTestTask: generateTestTaskFromTemplateTestTask,
   checkTemplateTest: function (templateTest) {
     if (!templateTest.hasOwnProperty('orderType') || !templateTest.hasOwnProperty('arrayTTT') ||
       !templateTest.hasOwnProperty('title')) {
@@ -499,7 +485,7 @@ module.exports = {
 
     for (let i=0;i<templateTest.arrayTTT.length;++i) {
       try {
-        checkTTT(templateTest.arrayTTT[i]);
+        checkTemplateTestTask(templateTest.arrayTTT[i]);
       } catch (error) {
         return false;
       }
@@ -516,7 +502,7 @@ module.exports = {
     }
 
     for (let i=0;i<arrayTTT.length;++i) {
-      result.push(generateTestTaskFromTTT(arrayTTT[i]));
+      result.push(generateTestTaskFromTemplateTestTask(arrayTTT[i]));
     }
 
     return result;
@@ -541,7 +527,7 @@ module.exports = {
 
     for (let testIndex = 0; testIndex < test.length; ++testIndex) {
       result += test[testIndex]['testText'] + '{\n';
-      if (test[testIndex]['type'] === INPUT_TYPE) {
+      if (test[testIndex]['type'] === SHORT_ANSWER_TYPE) {
         for (let optionIndex = 0; optionIndex < test[testIndex]['answers'].length; ++optionIndex) {
           result += '=' + test[testIndex]['answers'][optionIndex] + '\n';
         }
