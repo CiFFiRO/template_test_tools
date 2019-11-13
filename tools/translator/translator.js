@@ -525,13 +525,13 @@ function translateTestTaskToGIFT(testTask) {
   return result;
 }
 
-function translateTestTaskToForm(template) {
+function translateTemplateTestTaskToForm(template) {
   if (IS_CHAKRA_INTERPRETER) {
     template = JSON.parse(template);
   }
 
   let result = {header:template['title'], type:template['type'], grammar:'',
-    textTask:template['textTask'], feedbackScript:template['feedbackScript']};
+    testText:template['testText'], feedbackScript:template['feedbackScript']};
 
   function replaceDots(alternative) {
     let result = '';
@@ -595,7 +595,7 @@ function translateTestTaskToForm(template) {
 
 module.exports = {
   templateTestTaskFormToTemplate: templateTestTaskFormToTemplate,
-  translateTestTaskToForm: translateTestTaskToForm,
+  translateTemplateTestTaskToForm: translateTemplateTestTaskToForm,
   checkTemplateTestTask: checkTemplateTestTask,
   generateTestTaskFromTemplateTestTask: generateTestTaskFromTemplateTestTask,
   translateTestTaskToGIFT: translateTestTaskToGIFT,

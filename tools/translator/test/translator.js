@@ -105,7 +105,7 @@ function test_positive_TemplateTestTaskFormTranslation() {
 
   for (let i=0;i<testCases.length;++i) {
     ASSERT.doesNotThrow(function (){
-      ASSERT.equal(translator.translateTestTaskToForm(translator.templateTestTaskFormToTemplate('', 0, testCases[i][0], '' ,''))['grammar'],
+      ASSERT.equal(translator.translateTemplateTestTaskToForm(translator.templateTestTaskFormToTemplate('', 0, testCases[i][0], '' ,''))['grammar'],
         testCases[i][1], `Error is exist in test case ${i}`);
     });
   }
