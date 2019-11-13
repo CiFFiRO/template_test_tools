@@ -1,3 +1,4 @@
+const IS_CHAKRA_INTERPRETER = false;
 const FUNCTIONS_RE = 'rInteger\\(\\s*[+-]?[0-9]+\\s*,\\s*[+-]?[0-9]+\\s*\\)|' +
   'rFloat\\(\\s*[-+]?(?:\\d*\\.?\\d+|\\d+\\.?\\d*)(?:[eE][-+]?\\d+)?\\s*,' +
   '\\s*[-+]?(?:\\d*\\.?\\d+|\\d+\\.?\\d*)(?:[eE][-+]?\\d+)?\\s*,\\s*[+]?[1-9]+[0-9]*\\s*\\)|' +
@@ -165,6 +166,11 @@ function templateTestTaskFormToTemplate(header, type, grammar, textTask, feedbac
             rules[nonTerminal][0] = '[' + rules[nonTerminal][0];
             condition = false;
           }
+
+          if (beginAlternative === endAlternative) {
+            throw Error(`Non terminal ${nonTerminal} has empty alternative with condition construction`);
+          }
+
           let alternative = grammar.substring(beginAlternative, endAlternative);
           alternative = alternative.replace(/\$\|/g, '|');
           alternative = alternative.replace(/\.\./g, '.');
@@ -215,15 +221,23 @@ function templateTestTaskFormToTemplate(header, type, grammar, textTask, feedbac
     }
   }
 
-  return {title:header, type:type, rules:rules, testText: textTask, feedbackScript:feedbackScript};
+  let result = {title:header, type:type, rules:rules, testText: textTask, feedbackScript:feedbackScript};
+  if (IS_CHAKRA_INTERPRETER) {
+    return JSON.stringify(result);
+  }
+  return result;
 }
 
 function checkTemplateTestTask(templateTestTask) {
+  if (IS_CHAKRA_INTERPRETER) {
+    templateTestTask = JSON.parse(templateTestTask);
+  }
+
   if (!templateTestTask.hasOwnProperty('title') || !templateTestTask.hasOwnProperty('type') || !templateTestTask.hasOwnProperty('rules')
     || !templateTestTask.hasOwnProperty('testText') || !templateTestTask.hasOwnProperty('feedbackScript')) {
     throw Error('Bad json data');
   }
-  if (typeof templateTestTask['type'] !== 'number' || 
+  if (typeof templateTestTask['type'] !== 'number' ||
     templateTestTask['type'] < SHORT_ANSWER_TYPE || templateTestTask['type'] > MULTIPLE_CHOOSE_TYPE) {
     throw Error('Bad template test task type');
   }
@@ -264,6 +278,10 @@ function checkTemplateTestTask(templateTestTask) {
 }
 
 function generateTestTaskFromTemplateTestTask(templateTestTask) {
+  if (IS_CHAKRA_INTERPRETER) {
+    templateTestTask = JSON.parse(templateTestTask);
+  }
+
   let result = {};
   result['type'] = templateTestTask['type'];
 
@@ -463,13 +481,124 @@ function generateTestTaskFromTemplateTestTask(templateTestTask) {
     result['falseOptions'] = falseOptions;
   }
 
+  if (IS_CHAKRA_INTERPRETER) {
+    return JSON.stringify(result);
+  }
+  return result;
+}
+
+function translateTestTaskToGIFT(testTask) {
+  if (IS_CHAKRA_INTERPRETER) {
+    testTask = JSON.parse(testTask);
+  }
+
+  function getOptions(trueOptions, falseOptions) {
+    let result = [];
+    for (let i=0;i<trueOptions.length;++i) {
+      result.push([true, trueOptions[i]]);
+    }
+    for (let i=0;i<falseOptions.length;++i) {
+      result.push([false, falseOptions[i]]);
+    }
+
+    return rSubArray(result, result.length);
+  }
+
+  let result = testTask['testText'] + '{\n';
+  if (testTask['type'] === SHORT_ANSWER_TYPE) {
+    for (let optionIndex = 0; optionIndex < testTask['answers'].length; ++optionIndex) {
+      result += '=' + testTask['answers'][optionIndex] + '\n';
+    }
+  } else {
+    let options = getOptions(testTask['trueOptions'], testTask['falseOptions']);
+    for (let optionIndex = 0; optionIndex < options.length; ++optionIndex) {
+      if (options[optionIndex][0]) {
+        result += '=';
+      } else {
+        result += '~';
+      }
+      result += options[optionIndex][1] + '\n';
+    }
+  }
+  result += '}\n';
+
+  return result;
+}
+
+function translateTestTaskToForm(template) {
+  if (IS_CHAKRA_INTERPRETER) {
+    template = JSON.parse(template);
+  }
+
+  let result = {header:template['title'], type:template['type'], grammar:'',
+    textTask:template['textTask'], feedbackScript:template['feedbackScript']};
+
+  function replaceDots(alternative) {
+    let result = '';
+    let beginIndex = 0;
+    for (let i=0;i < alternative.length;++i) {
+      if (alternative[i] === '$' && i+1 < alternative.length) {
+        if (alternative[i+1] === '$') {
+          ++i;
+        } else if (alternative[i+1] !== '{' && alternative[i+1] !== '$') {
+          ++i;
+          while (alternative[i] !== ')') ++i;
+        }
+      } else if (alternative[i] === '.') {
+        result += alternative.substring(beginIndex, i+1) + '.';
+        beginIndex = i+1;
+      }
+    }
+    if (beginIndex < alternative.length) {
+      result += alternative.substring(beginIndex);
+    }
+
+    return result;
+  }
+
+  for (let nonTerminal in template['rules']) {
+    if (template['rules'].hasOwnProperty(nonTerminal)) {
+      let expression = nonTerminal+'=';
+      let condition = false;
+      if (template['rules'][nonTerminal][template['rules'][nonTerminal].length-1].length === 0) {
+        condition = true;
+        expression += '[';
+      }
+
+      for (let i=0;i<template['rules'][nonTerminal].length;++i) {
+        if (condition && i+1===template['rules'][nonTerminal].length) {
+          break;
+        }
+        let alternative = template['rules'][nonTerminal][i];
+        alternative = replaceDots(alternative);
+        alternative = alternative.replace(/\|/g, '$|');
+        expression += alternative;
+        if ((condition && i+1<template['rules'][nonTerminal].length-1) ||
+          (!condition && i+1<template['rules'][nonTerminal].length)) {
+          expression += '|';
+        }
+      }
+
+      if (condition) {
+        expression += ']';
+      }
+      expression += '.';
+      result['grammar'] += expression + '\n';
+    }
+  }
+
+  if (IS_CHAKRA_INTERPRETER) {
+    return JSON.stringify(result);
+  }
   return result;
 }
 
 module.exports = {
   templateTestTaskFormToTemplate: templateTestTaskFormToTemplate,
+  translateTestTaskToForm: translateTestTaskToForm,
   checkTemplateTestTask: checkTemplateTestTask,
   generateTestTaskFromTemplateTestTask: generateTestTaskFromTemplateTestTask,
+  translateTestTaskToGIFT: translateTestTaskToGIFT,
   checkTemplateTest: function (templateTest) {
     if (!templateTest.hasOwnProperty('orderType') || !templateTest.hasOwnProperty('arrayTTT') ||
       !templateTest.hasOwnProperty('title')) {
