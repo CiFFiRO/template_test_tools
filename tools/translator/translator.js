@@ -9,10 +9,10 @@ const PREGENERATED_ANSWER_SCRIPT_PART = '' +
   '' +
   'function $$rSubArray(array, length) {\n' +
   '  if (isNaN(+length)) {\n' +
-  '    throw Error(\'$$rSubArray: length is not a number\');\n' +
+  '    throw new Error(\'$$rSubArray: length is not a number\');\n' +
   '  }\n' +
   '  if (length < 0) {\n' +
-  '    throw Error(\'$$rSubArray: length is bad\');\n' +
+  '    throw new Error(\'$$rSubArray: length is bad\');\n' +
   '  }\n' +
   '  \n' +
   '  function getRandomInt(min, max) {\n' +
@@ -54,7 +54,7 @@ const MULTIPLE_CHOOSE_TYPE = 2;
 
 const STRONG_ORDER_TYPE = 0;
 const RANDOM_ORDER_TYPE = 1;
-
+// TODO: текст исключений переработать, где он слабо осмыслен, и мб на русском его написать.
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
@@ -126,13 +126,13 @@ function CheckTemplateTestTaskGrammar(grammar) {
 function templateTestTaskFormToTemplate(header, type, grammar, textTask, feedbackScript) {
   if (typeof header !== 'string' || typeof grammar !== 'string' ||
     typeof textTask !== 'string' || typeof feedbackScript !== 'string' || typeof type !== 'number') {
-    throw Error('Argument(s) type not a string');
+    throw new Error('Argument(s) type not a string');
   }
   if (type < SHORT_ANSWER_TYPE || type > MULTIPLE_CHOOSE_TYPE) {
-    throw Error('Type test task is not current');
+    throw new Error('Type test task is not current');
   }
   if (!CheckTemplateTestTaskGrammar(grammar)) {
-    throw Error('Grammar has syntax error');
+    throw new Error('Grammar has syntax error');
   }
 
   let rules = {};
@@ -146,7 +146,7 @@ function templateTestTaskFormToTemplate(header, type, grammar, textTask, feedbac
     while(grammar[i] !== '=') ++i;
     let nonTerminal = grammar.substring(beginNonTerminal, i);
     if (nonTerminal in rules) {
-      throw Error(`Redefine non terminal ${nonTerminal}`);
+      throw new Error(`Redefine non terminal ${nonTerminal}`);
     }
     rules[nonTerminal] = [];
     ++i;
@@ -168,7 +168,7 @@ function templateTestTaskFormToTemplate(header, type, grammar, textTask, feedbac
           }
 
           if (beginAlternative === endAlternative) {
-            throw Error(`Non terminal ${nonTerminal} has empty alternative with condition construction`);
+            throw new Error(`Non terminal ${nonTerminal} has empty alternative with condition construction`);
           }
 
           let alternative = grammar.substring(beginAlternative, endAlternative);
@@ -200,7 +200,7 @@ function templateTestTaskFormToTemplate(header, type, grammar, textTask, feedbac
           let nonTerminalName = grammar.substring(beginNonTerminalName, i);
           ++i;
           if (!(nonTerminalName in rules) || nonTerminalName === nonTerminal) {
-            throw Error(`Use not previously defined non terminal ${nonTerminalName} in the definition ${nonTerminal}`);
+            throw new Error(`Use not previously defined non terminal ${nonTerminalName} in the definition ${nonTerminal}`);
           }
         } else if (grammar[i+1] === '|') {
           i += 2;
@@ -235,21 +235,21 @@ function checkTemplateTestTask(templateTestTask) {
 
   if (!templateTestTask.hasOwnProperty('title') || !templateTestTask.hasOwnProperty('type') || !templateTestTask.hasOwnProperty('rules')
     || !templateTestTask.hasOwnProperty('testText') || !templateTestTask.hasOwnProperty('feedbackScript')) {
-    throw Error('Bad json data');
+    throw new Error('Bad json data');
   }
   if (typeof templateTestTask['type'] !== 'number' ||
     templateTestTask['type'] < SHORT_ANSWER_TYPE || templateTestTask['type'] > MULTIPLE_CHOOSE_TYPE) {
-    throw Error('Bad template test task type');
+    throw new Error('Bad template test task type');
   }
   let nonTerminals = new Set();
   let nonTerminalsNamesRegExp = '';
   for (let nonTerminal in templateTestTask['rules']) {
     if (templateTestTask['rules'].hasOwnProperty(nonTerminal)) {
       if (!/^[0-9a-zA-Z]+$/.test(nonTerminal)) {
-        throw Error(`Non terminal name has syntax error - ${nonTerminal}`);
+        throw new Error(`Non terminal name has syntax error - ${nonTerminal}`);
       }
       if (nonTerminals.has(nonTerminal)) {
-        throw Error(`Duplicate non terminal name - ${nonTerminal}`);
+        throw new Error(`Duplicate non terminal name - ${nonTerminal}`);
       }
       nonTerminals.add(nonTerminal);
       if (nonTerminalsNamesRegExp.length > 0) {
@@ -258,7 +258,7 @@ function checkTemplateTestTask(templateTestTask) {
       let regexp = new RegExp(`^([^$]|\\$\\$|\\$(${FUNCTIONS_RE})|\\$\\{\\s*(${nonTerminalsNamesRegExp})\\s*\\})*$`);
       for (let i = 0; i < templateTestTask['rules'][nonTerminal].length; ++i) {
         if (!regexp.test(templateTestTask['rules'][nonTerminal][i])) {
-          throw Error(`Non terminal ${nonTerminal} alternative has syntax error`);
+          throw new Error(`Non terminal ${nonTerminal} alternative has syntax error`);
         }
       }
     }
@@ -335,7 +335,7 @@ function generateTestTaskFromTemplateTestTask(templateTestTask) {
         let min = +arguments[0];
         let max = +arguments[1];
         if (min > max) {
-          throw Error('rInteger: interval is not exist');
+          throw new Error('rInteger: interval is not exist');
         }
 
         let value = rInteger(min, max);
@@ -345,7 +345,7 @@ function generateTestTaskFromTemplateTestTask(templateTestTask) {
         let max = +arguments[1];
         let length = +arguments[2];
         if (min > max) {
-          throw Error('rFloat: interval is not exist');
+          throw new Error('rFloat: interval is not exist');
         }
 
         let value = rFloat(min, max, length);
@@ -353,13 +353,13 @@ function generateTestTaskFromTemplateTestTask(templateTestTask) {
       } else if (name === 'rElement') {
         // TODO: протестить на работо способность
         if (arguments.length === 0) {
-          throw Error('rElement: does not have arguments');
+          throw new Error('rElement: does not have arguments');
         }
 
         let value = arguments[getRandomInt(0, arguments.length)];
         result = result.substring(0, info[0]) + value + result.substring(info[1]+1);
       } else {
-        throw Error('Function ' + name + ' is not exist');
+        throw new Error('Function ' + name + ' is not exist');
       }
     }
 
@@ -416,7 +416,7 @@ function generateTestTaskFromTemplateTestTask(templateTestTask) {
 
   let testText = replaceSpecialSymbolsGIFT(removeEmptyStrings(replaceNonTerminals(templateTestTask['testText'])));
   if (testText.length === 0) {
-    throw Error('Test task text is empty');
+    throw new Error('Test task text is empty');
   }
 
   result['testText'] = testText;
@@ -437,34 +437,34 @@ function generateTestTaskFromTemplateTestTask(templateTestTask) {
   try {
     value = eval(script);
   } catch (error) {
-    throw Error('Answer script error: ' + error.message);
+    throw new Error('Answer script error: ' + error.message);
   }
 
   let answer = value[0];
   let falseOptions = value[1];
 
   if (typeof answer !== 'object') {
-    throw Error('Answer does not initialized');
+    throw new Error('Answer does not initialized');
   }
   if (answer.length < 1) {
-    throw Error('Wrong true answers number');
+    throw new Error('Wrong true answers number');
   }
 
   answer.forEach(function (elem) {
     let type = typeof elem;
     if (type !== 'string' && type !== 'number') {
-      throw Error('Wrong true option type');
+      throw new Error('Wrong true option type');
     }
   });
   falseOptions.forEach(function (elem) {
     let type = typeof elem;
     if (type !== 'string' && type !== 'number') {
-      throw Error('Wrong false option type');
+      throw new Error('Wrong false option type');
     }
   });
 
   if (templateTestTask['type'] === SINGLE_CHOOSE_TYPE && answer.length > 1) {
-    throw Error('Multiple answer options');
+    throw new Error('Multiple answer options');
   }
 
   if (templateTestTask['type'] === SHORT_ANSWER_TYPE) {
@@ -474,7 +474,7 @@ function generateTestTaskFromTemplateTestTask(templateTestTask) {
 
     for (let i=0;i<answer.length;++i) {
       if (falseOptions.indexOf(answer[i]) !== -1) {
-        throw Error('False options contain true option');
+        throw new Error('False options contain true option');
       }
     }
 
