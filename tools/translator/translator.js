@@ -163,11 +163,17 @@ function templateTestTaskFormToTemplate(header, type, grammar, textTask, feedbac
           if (condition && grammar[i-1] === ']') {
             --endAlternative;
           } else if (condition) {
-            rules[nonTerminal][0] = '[' + rules[nonTerminal][0];
             condition = false;
+            if (rules[nonTerminal].length > 0) {
+              rules[nonTerminal][0] = '[' + rules[nonTerminal][0];
+            } else {
+              rules[nonTerminal].push('[');
+              ++i;
+              continue;
+            }
           }
 
-          if (beginAlternative === endAlternative) {
+          if (beginAlternative === endAlternative && condition) {
             throw new Error(`Non terminal ${nonTerminal} has empty alternative with condition construction`);
           }
 
@@ -251,13 +257,16 @@ function checkTemplateTestTask(templateTestTask) {
       if (nonTerminals.has(nonTerminal)) {
         throw new Error(`Duplicate non terminal name - ${nonTerminal}`);
       }
-      nonTerminals.add(nonTerminal);
       if (nonTerminalsNamesRegExp.length > 0) {
         nonTerminalsNamesRegExp += '|' + nonTerminal;
+      } else {
+        nonTerminalsNamesRegExp += nonTerminal;
       }
+      nonTerminals.add(nonTerminal);
       let regexp = new RegExp(`^([^$]|\\$\\$|\\$(${FUNCTIONS_RE})|\\$\\{\\s*(${nonTerminalsNamesRegExp})\\s*\\})*$`);
       for (let i = 0; i < templateTestTask['rules'][nonTerminal].length; ++i) {
         if (!regexp.test(templateTestTask['rules'][nonTerminal][i])) {
+          console.log(templateTestTask['rules'][nonTerminal][i]);
           throw new Error(`Non terminal ${nonTerminal} alternative has syntax error`);
         }
       }
@@ -351,7 +360,7 @@ function generateTestTaskFromTemplateTestTask(templateTestTask) {
         let value = rFloat(min, max, length);
         result = result.substring(0, info[0]) + value + result.substring(info[1]+1);
       } else if (name === 'rElement') {
-        // TODO: протестить на работо способность
+        // TODO: протестить на работоспособность
         if (arguments.length === 0) {
           throw new Error('rElement: does not have arguments');
         }
@@ -593,88 +602,94 @@ function translateTemplateTestTaskToForm(template) {
   return result;
 }
 
+function checkTemplateTest(templateTest) {
+  if (!templateTest.hasOwnProperty('orderType') || !templateTest.hasOwnProperty('arrayTemplateTestTask') ||
+    !templateTest.hasOwnProperty('title')) {
+    return false;
+  }
+  if (typeof templateTest.orderType !== 'number' || typeof templateTest.arrayTemplateTestTask !== 'object'
+    || typeof templateTest.title !== 'string') {
+    return false;
+  }
+  if (templateTest.orderType > RANDOM_ORDER_TYPE || templateTest.orderType < STRONG_ORDER_TYPE) {
+    return false;
+  }
+
+  for (let i=0;i<templateTest.arrayTemplateTestTask.length;++i) {
+    try {
+      checkTemplateTestTask(templateTest.arrayTemplateTestTask[i]);
+    } catch (error) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function generateTestFromTemplateTest(templateTest) {
+  let result = [];
+  let arrayTemplateTestTask = templateTest.arrayTemplateTestTask.slice(0);
+
+  if (templateTest.orderType === RANDOM_ORDER_TYPE) {
+    arrayTemplateTestTask = rSubArray(arrayTemplateTestTask, arrayTemplateTestTask.length);
+  }
+
+  for (let i=0;i<arrayTemplateTestTask.length;++i) {
+    result.push(generateTestTaskFromTemplateTestTask(arrayTemplateTestTask[i]));
+  }
+
+  return result;
+}
+
+function translateTestToGIFT(test) {
+  let date = new Date(Date.now());
+  let preamble = '// generated date: ' + date.toString();
+  let space = '//--------------------------------------------------';
+  let result = preamble + '\n\n\n';
+
+  function getOptions(trueOptions, falseOptions) {
+    let result = [];
+    for (let i=0;i<trueOptions.length;++i) {
+      result.push([true, trueOptions[i]]);
+    }
+    for (let i=0;i<falseOptions.length;++i) {
+      result.push([false, falseOptions[i]]);
+    }
+
+    return rSubArray(result, result.length);
+  }
+
+  for (let testIndex = 0; testIndex < test.length; ++testIndex) {
+    result += test[testIndex]['testText'] + '{\n';
+    if (test[testIndex]['type'] === SHORT_ANSWER_TYPE) {
+      for (let optionIndex = 0; optionIndex < test[testIndex]['answers'].length; ++optionIndex) {
+        result += '=' + test[testIndex]['answers'][optionIndex] + '\n';
+      }
+    } else {
+      let options = getOptions(test[testIndex]['trueOptions'], test[testIndex]['falseOptions']);
+      for (let optionIndex = 0; optionIndex < options.length; ++optionIndex) {
+        if (options[optionIndex][0]) {
+          result += '=';
+        } else {
+          result += '~';
+        }
+        result += options[optionIndex][1] + '\n';
+      }
+    }
+    result += '}\n';
+    result += '\n' + space + '\n';
+  }
+
+  return result;
+}
+
 module.exports = {
   templateTestTaskFormToTemplate: templateTestTaskFormToTemplate,
   translateTemplateTestTaskToForm: translateTemplateTestTaskToForm,
   checkTemplateTestTask: checkTemplateTestTask,
   generateTestTaskFromTemplateTestTask: generateTestTaskFromTemplateTestTask,
   translateTestTaskToGIFT: translateTestTaskToGIFT,
-  checkTemplateTest: function (templateTest) {
-    if (!templateTest.hasOwnProperty('orderType') || !templateTest.hasOwnProperty('arrayTTT') ||
-      !templateTest.hasOwnProperty('title')) {
-      return false;
-    }
-    if (typeof templateTest.orderType !== 'number' || typeof templateTest.arrayTTT !== 'object'
-    || typeof templateTest.title !== 'string') {
-      return false;
-    }
-    if (templateTest.orderType > RANDOM_ORDER_TYPE || templateTest.orderType < STRONG_ORDER_TYPE) {
-      return false;
-    }
-
-    for (let i=0;i<templateTest.arrayTTT.length;++i) {
-      try {
-        checkTemplateTestTask(templateTest.arrayTTT[i]);
-      } catch (error) {
-        return false;
-      }
-    }
-
-    return true;
-  },
-  generateTestFormTemplateTest: function (templateTest) {
-    let result = [];
-    let arrayTTT = templateTest.arrayTTT.slice(0);
-
-    if (templateTest.orderType === RANDOM_ORDER_TYPE) {
-      arrayTTT = rSubArray(arrayTTT, arrayTTT.length);
-    }
-
-    for (let i=0;i<arrayTTT.length;++i) {
-      result.push(generateTestTaskFromTemplateTestTask(arrayTTT[i]));
-    }
-
-    return result;
-  },
-  translateTestToGIFT: function (test) {
-    let date = new Date(Date.now());
-    let preamble = '// generated date: ' + date.toString();
-    let space = '//--------------------------------------------------';
-    let result = preamble + '\n\n\n';
-
-    function getOptions(trueOptions, falseOptions) {
-      let result = [];
-      for (let i=0;i<trueOptions.length;++i) {
-        result.push([true, trueOptions[i]]);
-      }
-      for (let i=0;i<falseOptions.length;++i) {
-        result.push([false, falseOptions[i]]);
-      }
-
-      return rSubArray(result, result.length);
-    }
-
-    for (let testIndex = 0; testIndex < test.length; ++testIndex) {
-      result += test[testIndex]['testText'] + '{\n';
-      if (test[testIndex]['type'] === SHORT_ANSWER_TYPE) {
-        for (let optionIndex = 0; optionIndex < test[testIndex]['answers'].length; ++optionIndex) {
-          result += '=' + test[testIndex]['answers'][optionIndex] + '\n';
-        }
-      } else {
-        let options = getOptions(test[testIndex]['trueOptions'], test[testIndex]['falseOptions']);
-        for (let optionIndex = 0; optionIndex < options.length; ++optionIndex) {
-          if (options[optionIndex][0]) {
-            result += '=';
-          } else {
-            result += '~';
-          }
-          result += options[optionIndex][1] + '\n';
-        }
-      }
-      result += '}\n';
-      result += '\n' + space + '\n';
-    }
-
-    return result;
-  }
+  checkTemplateTest: checkTemplateTest,
+  generateTestFormTemplateTest: generateTestFromTemplateTest,
+  translateTestToGIFT: translateTestToGIFT
 };

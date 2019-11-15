@@ -9,12 +9,10 @@ function test_positive_Translator() {
       let data = FS.readFileSync(fileNames[i]);
       let ttt = JSON.parse(data);
       ASSERT.doesNotThrow(function () {
-        translator.checkTemplateTest(ttt);
+        translator.checkTemplateTestTask(ttt);
       });
       ASSERT.doesNotThrow(function () {
-        //console.log(fileNames[i]);
         let tt = translator.generateTestTaskFromTemplateTestTask(ttt);
-        //console.log(tt);
         result.push(tt);
       });
     }
@@ -42,6 +40,7 @@ function test_positive_Translator() {
 
   ASSERT.doesNotThrow(function (){
     let tt = translator.translateTestToGIFT(TTT2T(getTT(0, 20)));
+    //console.log(tt);
   });
 }
 
@@ -60,7 +59,9 @@ function test_positive_TemplateTestTaskGrammarTranslation() {
     ['a=..$||$|...b=[..${a}....].',
       {a:['.|', '|.'], b:['.${a}..', '']}],
     ['                ', {}],
-    ['a=[ ].', {a:[' ', '']}]
+    ['a=[ ].', {a:[' ', '']}],
+    ['a=[.', {a:['[']}],
+    ['a=].', {a:[']']}]
   ];
 
   for (let i=0;i<testCases.length;++i) {
