@@ -61,7 +61,8 @@ function test_positive_TemplateTestTaskGrammarTranslation() {
     ['                ', {}],
     ['a=[ ].', {a:[' ', '']}],
     ['a=[.', {a:['[']}],
-    ['a=].', {a:[']']}]
+    ['a=].', {a:[']']}],
+    ['a=]|[.', {a:[']','[']}]
   ];
 
   for (let i=0;i<testCases.length;++i) {

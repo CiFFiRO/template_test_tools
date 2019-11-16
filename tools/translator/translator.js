@@ -1,4 +1,4 @@
-const IS_CHAKRA_INTERPRETER = false;
+const IS_CSHARP_INTERPRETER = false;
 const FUNCTIONS_RE = 'rInteger\\(\\s*[+-]?[0-9]+\\s*,\\s*[+-]?[0-9]+\\s*\\)|' +
   'rFloat\\(\\s*[-+]?(?:\\d*\\.?\\d+|\\d+\\.?\\d*)(?:[eE][-+]?\\d+)?\\s*,' +
   '\\s*[-+]?(?:\\d*\\.?\\d+|\\d+\\.?\\d*)(?:[eE][-+]?\\d+)?\\s*,\\s*[+]?[1-9]+[0-9]*\\s*\\)|' +
@@ -126,7 +126,7 @@ function CheckTemplateTestTaskGrammar(grammar) {
 function templateTestTaskFormToTemplate(header, type, grammar, textTask, feedbackScript) {
   if (typeof header !== 'string' || typeof grammar !== 'string' ||
     typeof textTask !== 'string' || typeof feedbackScript !== 'string' || typeof type !== 'number') {
-    throw new Error('Argument(s) type not a string');
+    throw new Error('Argument(s) type(s) is not current');
   }
   if (type < SHORT_ANSWER_TYPE || type > MULTIPLE_CHOOSE_TYPE) {
     throw new Error('Type test task is not current');
@@ -228,14 +228,14 @@ function templateTestTaskFormToTemplate(header, type, grammar, textTask, feedbac
   }
 
   let result = {title:header, type:type, rules:rules, testText: textTask, feedbackScript:feedbackScript};
-  if (IS_CHAKRA_INTERPRETER) {
+  if (IS_CSHARP_INTERPRETER) {
     return JSON.stringify(result);
   }
   return result;
 }
 
 function checkTemplateTestTask(templateTestTask) {
-  if (IS_CHAKRA_INTERPRETER) {
+  if (IS_CSHARP_INTERPRETER) {
     templateTestTask = JSON.parse(templateTestTask);
   }
 
@@ -287,7 +287,7 @@ function checkTemplateTestTask(templateTestTask) {
 }
 
 function generateTestTaskFromTemplateTestTask(templateTestTask) {
-  if (IS_CHAKRA_INTERPRETER) {
+  if (IS_CSHARP_INTERPRETER) {
     templateTestTask = JSON.parse(templateTestTask);
   }
 
@@ -490,14 +490,14 @@ function generateTestTaskFromTemplateTestTask(templateTestTask) {
     result['falseOptions'] = falseOptions;
   }
 
-  if (IS_CHAKRA_INTERPRETER) {
+  if (IS_CSHARP_INTERPRETER) {
     return JSON.stringify(result);
   }
   return result;
 }
 
 function translateTestTaskToGIFT(testTask) {
-  if (IS_CHAKRA_INTERPRETER) {
+  if (IS_CSHARP_INTERPRETER) {
     testTask = JSON.parse(testTask);
   }
 
@@ -535,7 +535,7 @@ function translateTestTaskToGIFT(testTask) {
 }
 
 function translateTemplateTestTaskToForm(template) {
-  if (IS_CHAKRA_INTERPRETER) {
+  if (IS_CSHARP_INTERPRETER) {
     template = JSON.parse(template);
   }
 
@@ -596,13 +596,17 @@ function translateTemplateTestTaskToForm(template) {
     }
   }
 
-  if (IS_CHAKRA_INTERPRETER) {
+  if (IS_CSHARP_INTERPRETER) {
     return JSON.stringify(result);
   }
   return result;
 }
 
 function checkTemplateTest(templateTest) {
+  if (IS_CSHARP_INTERPRETER) {
+    templateTest = JSON.parse(templateTest);
+  }
+
   if (!templateTest.hasOwnProperty('orderType') || !templateTest.hasOwnProperty('arrayTemplateTestTask') ||
     !templateTest.hasOwnProperty('title')) {
     return false;
@@ -627,6 +631,10 @@ function checkTemplateTest(templateTest) {
 }
 
 function generateTestFromTemplateTest(templateTest) {
+  if (IS_CSHARP_INTERPRETER) {
+    templateTest = JSON.parse(templateTest);
+  }
+
   let result = [];
   let arrayTemplateTestTask = templateTest.arrayTemplateTestTask.slice(0);
 
@@ -634,14 +642,26 @@ function generateTestFromTemplateTest(templateTest) {
     arrayTemplateTestTask = rSubArray(arrayTemplateTestTask, arrayTemplateTestTask.length);
   }
 
-  for (let i=0;i<arrayTemplateTestTask.length;++i) {
-    result.push(generateTestTaskFromTemplateTestTask(arrayTemplateTestTask[i]));
+  for (let i = 0; i < arrayTemplateTestTask.length; ++i) {
+    let testTask = generateTestTaskFromTemplateTestTask(arrayTemplateTestTask[i]);
+    if (IS_CSHARP_INTERPRETER) {
+      testTask = JSON.parse(testTask);
+    }
+    result.push(testTask);
+  }
+
+  if (IS_CSHARP_INTERPRETER) {
+    return JSON.stringify(result);
   }
 
   return result;
 }
 
 function translateTestToGIFT(test) {
+  if (IS_CSHARP_INTERPRETER) {
+    test = JSON.parse(test);
+  }
+
   let date = new Date(Date.now());
   let preamble = '// generated date: ' + date.toString();
   let space = '//--------------------------------------------------';
@@ -678,6 +698,27 @@ function translateTestToGIFT(test) {
     }
     result += '}\n';
     result += '\n' + space + '\n';
+  }
+
+  return result;
+}
+
+function templateTestFormToTemplate(header, type, templates) {
+  if (IS_CSHARP_INTERPRETER) {
+    templates = JSON.parse(templates);
+  }
+
+  if (typeof header !== 'string' || typeof templates !== 'object' || typeof type !== 'number') {
+    throw new Error('Argument(s) type(s) is not current');
+  }
+  if (type < STRONG_ORDER_TYPE || type > RANDOM_ORDER_TYPE) {
+    throw new Error('Type test task is not current');
+  }
+
+  let result = {title: header, orderType:type, arrayTemplateTestTask:templates};
+
+  if (IS_CSHARP_INTERPRETER) {
+    return JSON.stringify(result);
   }
 
   return result;
