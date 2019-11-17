@@ -61,7 +61,7 @@ function getRandomInt(min, max) {
 }
 
 function rInteger(min, max) {
-  return getRandomInt(min, max+1);
+  return getRandomInt(min, max + 1);
 }
 
 function rFloat(min, max, length) {
@@ -76,7 +76,7 @@ function rElement(elements) {
 function rSubArray(array, length) {
   let result = [];
   let copy = array.slice(0);
-  for (let _ = 0;_ < length;++_) {
+  for (let _ = 0; _ < length; ++_) {
     if (copy.length === 0) {
       break;
     }
@@ -100,7 +100,7 @@ function isDigit(aChar) {
 function isAlpha(aChar) {
   let myCharCode = aChar.charCodeAt(0);
 
-  if((myCharCode > 64 && myCharCode < 91) || (myCharCode > 96 && myCharCode < 123)) {
+  if ((myCharCode > 64 && myCharCode < 91) || (myCharCode > 96 && myCharCode < 123)) {
     return true;
   }
 
@@ -110,7 +110,7 @@ function isAlpha(aChar) {
 function isSpace(aChar) {
   let myCharCode = aChar.charCodeAt(0);
 
-  if ((myCharCode > 8 && myCharCode < 14) || myCharCode === 32){
+  if ((myCharCode > 8 && myCharCode < 14) || myCharCode === 32) {
     return true;
   }
 
@@ -136,14 +136,14 @@ function templateTestTaskFormToTemplate(header, type, grammar, textTask, feedbac
   }
 
   let rules = {};
-  for (let i=0;i<grammar.length;) {
-    let beginNonTerminal=-1;
-    while(i < grammar.length && isSpace(grammar[i])) ++i;
+  for (let i = 0; i < grammar.length;) {
+    let beginNonTerminal = -1;
+    while (i < grammar.length && isSpace(grammar[i]))++i;
     if (i === grammar.length) {
       break;
     }
     beginNonTerminal = i;
-    while(grammar[i] !== '=') ++i;
+    while (grammar[i] !== '=')++i;
     let nonTerminal = grammar.substring(beginNonTerminal, i);
     if (nonTerminal in rules) {
       throw new Error(`Redefine non terminal ${nonTerminal}`);
@@ -158,9 +158,9 @@ function templateTestTaskFormToTemplate(header, type, grammar, textTask, feedbac
     let beginAlternative = i;
     while (i < grammar.length) {
       if (grammar[i] === '.') {
-        if (i+1 === grammar.length || grammar[i+1] !== '.') {
+        if (i + 1 === grammar.length || grammar[i + 1] !== '.') {
           let endAlternative = i;
-          if (condition && grammar[i-1] === ']') {
+          if (condition && grammar[i - 1] === ']') {
             --endAlternative;
           } else if (condition) {
             condition = false;
@@ -196,24 +196,24 @@ function templateTestTaskFormToTemplate(header, type, grammar, textTask, feedbac
         beginAlternative = i;
       }
       else if (grammar[i] === '$') {
-        if (grammar[i+1] === '$') {
+        if (grammar[i + 1] === '$') {
           i += 2;
-        } else if (grammar[i+1] === '{') {
+        } else if (grammar[i + 1] === '{') {
           i += 2;
-          while(isSpace(grammar[i])) ++i;
+          while (isSpace(grammar[i]))++i;
           let beginNonTerminalName = i;
-          while(!isSpace(grammar[i]) && grammar[i] !== '}') ++i;
+          while (!isSpace(grammar[i]) && grammar[i] !== '}')++i;
           let nonTerminalName = grammar.substring(beginNonTerminalName, i);
           ++i;
           if (!(nonTerminalName in rules) || nonTerminalName === nonTerminal) {
             throw new Error(`Use not previously defined non terminal ${nonTerminalName} in the definition ${nonTerminal}`);
           }
-        } else if (grammar[i+1] === '|') {
+        } else if (grammar[i + 1] === '|') {
           i += 2;
         } else {
-          while (grammar[i] !== '(') ++i;
+          while (grammar[i] !== '(')++i;
           ++i;
-          while (grammar[i] !== ')') ++i;
+          while (grammar[i] !== ')')++i;
           ++i;
         }
       }
@@ -227,7 +227,7 @@ function templateTestTaskFormToTemplate(header, type, grammar, textTask, feedbac
     }
   }
 
-  let result = {title:header, type:type, rules:rules, testText: textTask, feedbackScript:feedbackScript};
+  let result = { title: header, type: type, rules: rules, testText: textTask, feedbackScript: feedbackScript };
   if (IS_CSHARP_INTERPRETER) {
     return JSON.stringify(result);
   }
@@ -348,7 +348,7 @@ function generateTestTaskFromTemplateTestTask(templateTestTask) {
         }
 
         let value = rInteger(min, max);
-        result = result.substring(0, info[0]) + value + result.substring(info[1]+1);
+        result = result.substring(0, info[0]) + value + result.substring(info[1] + 1);
       } else if (name === 'rFloat') {
         let min = +arguments[0];
         let max = +arguments[1];
@@ -358,7 +358,7 @@ function generateTestTaskFromTemplateTestTask(templateTestTask) {
         }
 
         let value = rFloat(min, max, length);
-        result = result.substring(0, info[0]) + value + result.substring(info[1]+1);
+        result = result.substring(0, info[0]) + value + result.substring(info[1] + 1);
       } else if (name === 'rElement') {
         // TODO: протестить на работоспособность
         if (arguments.length === 0) {
@@ -366,7 +366,7 @@ function generateTestTaskFromTemplateTestTask(templateTestTask) {
         }
 
         let value = arguments[getRandomInt(0, arguments.length)];
-        result = result.substring(0, info[0]) + value + result.substring(info[1]+1);
+        result = result.substring(0, info[0]) + value + result.substring(info[1] + 1);
       } else {
         throw new Error('Function ' + name + ' is not exist');
       }
@@ -415,9 +415,9 @@ function generateTestTaskFromTemplateTestTask(templateTestTask) {
   function replaceSpecialSymbolsGIFT(text) {
     let result = text;
     let specialCharacters = ['~', '=', '#', '{', '}', ':'];
-    for (let i=0;i<specialCharacters.length;++i) {
+    for (let i = 0; i < specialCharacters.length; ++i) {
       let regexp = new RegExp(specialCharacters[i], 'g');
-      result = result.replace(regexp, '\\'+specialCharacters[i]);
+      result = result.replace(regexp, '\\' + specialCharacters[i]);
     }
 
     return result;
@@ -435,7 +435,7 @@ function generateTestTaskFromTemplateTestTask(templateTestTask) {
     if (templateTestTask['rules'].hasOwnProperty(rule)) {
       generatedFeedbackScriptPart += 'let $' + rule + ' = ' + alternativeIndexForNonTerminals[rule] + ';\n';
       generatedFeedbackScriptPart += 'let $' + rule + '_value = "' + alternativeForNonTerminals[rule].replace(/\n/g, '\\n') + '";\n';
-      for (let i=0;i<templateTestTask['rules'][rule].length;++i) {
+      for (let i = 0; i < templateTestTask['rules'][rule].length; ++i) {
         generatedFeedbackScriptPart += 'let $' + rule + '_' + i + ' = ' + i + ';\n';
       }
     }
@@ -481,7 +481,7 @@ function generateTestTaskFromTemplateTestTask(templateTestTask) {
   } else {
     result['trueOptions'] = answer;
 
-    for (let i=0;i<answer.length;++i) {
+    for (let i = 0; i < answer.length; ++i) {
       if (falseOptions.indexOf(answer[i]) !== -1) {
         throw new Error('False options contain true option');
       }
@@ -503,10 +503,10 @@ function translateTestTaskToGIFT(testTask) {
 
   function getOptions(trueOptions, falseOptions) {
     let result = [];
-    for (let i=0;i<trueOptions.length;++i) {
+    for (let i = 0; i < trueOptions.length; ++i) {
       result.push([true, trueOptions[i]]);
     }
-    for (let i=0;i<falseOptions.length;++i) {
+    for (let i = 0; i < falseOptions.length; ++i) {
       result.push([false, falseOptions[i]]);
     }
 
@@ -539,23 +539,25 @@ function translateTemplateTestTaskToForm(template) {
     template = JSON.parse(template);
   }
 
-  let result = {header:template['title'], type:template['type'], grammar:'',
-    testText:template['testText'], feedbackScript:template['feedbackScript']};
+  let result = {
+    header: template['title'], type: template['type'], grammar: '',
+    testText: template['testText'], feedbackScript: template['feedbackScript']
+  };
 
   function replaceDots(alternative) {
     let result = '';
     let beginIndex = 0;
-    for (let i=0;i < alternative.length;++i) {
-      if (alternative[i] === '$' && i+1 < alternative.length) {
-        if (alternative[i+1] === '$') {
+    for (let i = 0; i < alternative.length; ++i) {
+      if (alternative[i] === '$' && i + 1 < alternative.length) {
+        if (alternative[i + 1] === '$') {
           ++i;
-        } else if (alternative[i+1] !== '{' && alternative[i+1] !== '$') {
+        } else if (alternative[i + 1] !== '{' && alternative[i + 1] !== '$') {
           ++i;
-          while (alternative[i] !== ')') ++i;
+          while (alternative[i] !== ')')++i;
         }
       } else if (alternative[i] === '.') {
-        result += alternative.substring(beginIndex, i+1) + '.';
-        beginIndex = i+1;
+        result += alternative.substring(beginIndex, i + 1) + '.';
+        beginIndex = i + 1;
       }
     }
     if (beginIndex < alternative.length) {
@@ -567,23 +569,23 @@ function translateTemplateTestTaskToForm(template) {
 
   for (let nonTerminal in template['rules']) {
     if (template['rules'].hasOwnProperty(nonTerminal)) {
-      let expression = nonTerminal+'=';
+      let expression = nonTerminal + '=';
       let condition = false;
-      if (template['rules'][nonTerminal][template['rules'][nonTerminal].length-1].length === 0) {
+      if (template['rules'][nonTerminal][template['rules'][nonTerminal].length - 1].length === 0) {
         condition = true;
         expression += '[';
       }
 
-      for (let i=0;i<template['rules'][nonTerminal].length;++i) {
-        if (condition && i+1===template['rules'][nonTerminal].length) {
+      for (let i = 0; i < template['rules'][nonTerminal].length; ++i) {
+        if (condition && i + 1 === template['rules'][nonTerminal].length) {
           break;
         }
         let alternative = template['rules'][nonTerminal][i];
         alternative = replaceDots(alternative);
         alternative = alternative.replace(/\|/g, '$|');
         expression += alternative;
-        if ((condition && i+1<template['rules'][nonTerminal].length-1) ||
-          (!condition && i+1<template['rules'][nonTerminal].length)) {
+        if ((condition && i + 1 < template['rules'][nonTerminal].length - 1) ||
+          (!condition && i + 1 < template['rules'][nonTerminal].length)) {
           expression += '|';
         }
       }
@@ -619,7 +621,7 @@ function checkTemplateTest(templateTest) {
     return false;
   }
 
-  for (let i=0;i<templateTest.arrayTemplateTestTask.length;++i) {
+  for (let i = 0; i < templateTest.arrayTemplateTestTask.length; ++i) {
     try {
       checkTemplateTestTask(templateTest.arrayTemplateTestTask[i]);
     } catch (error) {
@@ -669,10 +671,10 @@ function translateTestToGIFT(test) {
 
   function getOptions(trueOptions, falseOptions) {
     let result = [];
-    for (let i=0;i<trueOptions.length;++i) {
+    for (let i = 0; i < trueOptions.length; ++i) {
       result.push([true, trueOptions[i]]);
     }
-    for (let i=0;i<falseOptions.length;++i) {
+    for (let i = 0; i < falseOptions.length; ++i) {
       result.push([false, falseOptions[i]]);
     }
 
@@ -715,7 +717,7 @@ function templateTestFormToTemplate(header, type, templates) {
     throw new Error('Type test task is not current');
   }
 
-  let result = {title: header, orderType:type, arrayTemplateTestTask:templates};
+  let result = { title: header, orderType: type, arrayTemplateTestTask: templates };
 
   if (IS_CSHARP_INTERPRETER) {
     return JSON.stringify(result);
