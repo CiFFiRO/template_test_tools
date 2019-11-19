@@ -148,6 +148,9 @@ function templateTestTaskFormToTemplate(header, type, grammar, textTask, feedbac
     if (nonTerminal in rules) {
       throw new Error(`Redefine non terminal ${nonTerminal}`);
     }
+    if (!/^[a-zA-Z]+[a-zA-Z0-9]*$/.test(nonTerminal)) {
+      throw new Error(`Name non terminal '${nonTerminal}' is not allowable`);
+    }
     rules[nonTerminal] = [];
     ++i;
     let condition = false;
@@ -251,7 +254,7 @@ function checkTemplateTestTask(templateTestTask) {
   let nonTerminalsNamesRegExp = '';
   for (let nonTerminal in templateTestTask['rules']) {
     if (templateTestTask['rules'].hasOwnProperty(nonTerminal)) {
-      if (!/^[0-9a-zA-Z]+$/.test(nonTerminal)) {
+      if (!/^[a-zA-Z]+[a-zA-Z0-9]*$/.test(nonTerminal)) {
         throw new Error(`Non terminal name has syntax error - ${nonTerminal}`);
       }
       if (nonTerminals.has(nonTerminal)) {
@@ -266,7 +269,6 @@ function checkTemplateTestTask(templateTestTask) {
       let regexp = new RegExp(`^([^$]|\\$\\$|\\$(${FUNCTIONS_RE})|\\$\\{\\s*(${nonTerminalsNamesRegExp})\\s*\\})*$`);
       for (let i = 0; i < templateTestTask['rules'][nonTerminal].length; ++i) {
         if (!regexp.test(templateTestTask['rules'][nonTerminal][i])) {
-          console.log(templateTestTask['rules'][nonTerminal][i]);
           throw new Error(`Non terminal ${nonTerminal} alternative has syntax error`);
         }
       }
@@ -726,6 +728,181 @@ function templateTestFormToTemplate(header, type, templates) {
   return result;
 }
 
+function templateTaskFormToTemplate(header, grammar, textTask) {
+  let result = {header:header, grammar:grammar, textTask:textTask};
+
+  if (IS_CSHARP_INTERPRETER) {
+    return JSON.stringify(result);
+  }
+
+  return result;
+}
+
+function mapFromEBNF(grammar) {
+  grammar = grammar.replace(/\$\|/g, '${_condition}');
+  grammar = grammar.replace(/\$\(/g, '${_parenthesisOpen}');
+  grammar = grammar.replace(/\$\)/g, '${_parenthesisClose}');
+  grammar = grammar.replace(/\$\[/g, '${_squareBracketOpen}');
+  grammar = grammar.replace(/\$]/g, '${_squareBracketClose}');
+  grammar = grammar.replace(/\$\./g, '${_end}');
+  grammar = grammar.replace(/\$=/g, '${_assignment}');
+  grammar = grammar.replace(/"/g, '\\"');
+
+  // [A|B]|(C|D|E)
+  grammar = grammar.replace(/]\|\[/g, '], [');
+  grammar = grammar.replace(/\)\|\(/g, '), (');
+  grammar = grammar.replace(/]\|\(/g, '], (');
+  grammar = grammar.replace(/\)\|\[/g, '), [');
+  grammar = grammar.replace(/\)\|/g, '), "');
+  grammar = grammar.replace(/]\|/g, '], "');
+  grammar = grammar.replace(/\|\(/g, '", (');
+  grammar = grammar.replace(/\|\[/g, '", [');
+
+  grammar = grammar.replace(/\|/g, '", "');
+  console.log(grammar);
+  let index = 0;
+  function translateOpenBrackets(nextBracket, nextOther) {
+    if (index+1 === grammar.length) {
+      throw new Error('Grammar has error');
+    }
+    if (grammar[index+1] === ')' || grammar[index+1] === ']' || grammar[index+1] === '.' || grammar[index+1] === '=') {
+      throw new Error('Grammar has error');
+    }
+    if (grammar[index+1] === '(' || grammar[index+1] === '[') {
+      grammar = grammar.substring(0, index) + nextBracket + grammar.substring(index+1);
+      index += nextBracket.length;
+    } else {
+      grammar = grammar.substring(0, index) + nextOther + grammar.substring(index+1);
+      index += nextOther.length;
+    }
+  }
+  function translateCloseBrackets() {
+    if (index+1 === grammar.length) {
+      throw new Error('Grammar has error');
+    }
+    if (grammar[index+1] === '(' || grammar[index+1] === '[' || grammar[index+1] === '=') {
+      throw new Error('Grammar has error');
+    }
+
+    if (grammar[index-1] !== ')' && grammar[index-1] !== ']') {
+      grammar = grammar.substring(0, index) + '"]' + grammar.substring(index + 1);
+      index += 2;
+    } else {
+      grammar = grammar.substring(0, index) + ']' + grammar.substring(index + 1);
+      ++index;
+    }
+  }
+  while (index < grammar.length) {
+    if (grammar[index] === '(') {
+      translateOpenBrackets('[', '["');
+    } else if (grammar[index] === '[') {
+      translateOpenBrackets('["", ', '["", "');
+    } else if (grammar[index] === ')' || grammar[index] === ']') { //
+      translateCloseBrackets();
+    } else if (index > 0 && grammar[index-1] === '=') {
+      grammar = grammar.substring(0, index) + '"' + grammar.substring(index);
+      ++index;
+    } else if (index-1 > 0 && grammar[index] === '.' && grammar[index-1] !== ']' && grammar[index-1] !== ')') {
+      grammar = grammar.substring(0, index) + '"' + grammar.substring(index);
+      index += 2;
+    } else {
+      ++index;
+    }
+  }
+
+  console.log(grammar);
+  grammar = grammar.replace(/=/g, '": [');
+  grammar = grammar.replace(/\./g, '], "');// !
+  console.log(grammar);
+  grammar = grammar.replace(/\${_condition}/g, '|');
+  grammar = grammar.replace(/\${_parenthesisOpen}/g, '(');
+  grammar = grammar.replace(/\${_parenthesisClose}/g, ')');
+  grammar = grammar.replace(/\${_squareBracketOpen}/g, '[');
+  grammar = grammar.replace(/\${_squareBracketClose}/g, ']');
+  grammar = grammar.replace(/\${_end}/g, '.');
+  grammar = grammar.replace(/\${_assignment}/g, '=');
+  console.log(grammar);
+  grammar = grammar.trim();
+  grammar = '"' + grammar;
+  if (grammar.length > 2) {
+    grammar = grammar.substring(0, grammar.length-3);
+  }
+  grammar = `{${grammar}}`;
+  console.log(grammar);
+  let result = {};
+  try {
+    result = JSON.parse(grammar);
+  } catch (exception) {
+    console.log(exception.message);
+    throw new Error('Grammar has error');
+  }
+
+  return result;
+}
+
+function checkTemplateTask(template) {
+  if (!template.hasOwnProperty('header') || !template.hasOwnProperty('grammar')
+    || !template.hasOwnProperty('textTask')) {
+    throw new Error('Bad json data');
+  }
+  if (typeof template['header'] !== 'string' || typeof template['grammar'] !== 'string'
+    || typeof template['textTask'] !== 'string') {
+    throw new Error('Bad template property types');
+  }
+
+  let map = mapFromEBNF(template['grammar']);
+  let mapGenerate = {};
+  for (let nonTerminal in map) {
+    if (map.hasOwnProperty(nonTerminal)) {
+      let newNonTerminal = nonTerminal.trim();
+      if (!/^[a-zA-Z]+[0-9a-zA-Z]*$/.test(newNonTerminal)) {
+        throw new Error(`Non terminal ${newNonTerminal} has syntax error`);
+      }
+      if (newNonTerminal in mapGenerate) {
+        throw new Error(`Non terminal ${newNonTerminal} has redefinition`);
+      }
+      mapGenerate[newNonTerminal] = map[nonTerminal];
+    }
+  }
+
+  let nonTerminals = new Set();
+  let nonTerminalsNamesRegExp = '';
+  for (let nonTerminal in mapGenerate) {
+    if (mapGenerate.hasOwnProperty(nonTerminal)) {
+      if (!/^[a-zA-Z]+[a-zA-Z0-9]*$/.test(nonTerminal)) {
+        throw new Error(`Non terminal name has syntax error - ${nonTerminal}`);
+      }
+      if (nonTerminals.has(nonTerminal)) {
+        throw new Error(`Duplicate non terminal name - ${nonTerminal}`);
+      }
+      if (nonTerminalsNamesRegExp.length > 0) {
+        nonTerminalsNamesRegExp += '|' + nonTerminal;
+      } else {
+        nonTerminalsNamesRegExp += nonTerminal;
+      }
+      nonTerminals.add(nonTerminal);
+      let regexp = new RegExp(`^([^$]|\\$\\$|\\$(${FUNCTIONS_RE})|\\$\\{\\s*(${nonTerminalsNamesRegExp})\\s*\\})*$`);
+      for (let i = 0; i < mapGenerate[nonTerminal].length; ++i) {
+        if (!regexp.test(mapGenerate[nonTerminal][i])) {
+          throw new Error(`Non terminal ${nonTerminal} alternative has syntax error`);
+        }
+      }
+    }
+  }
+
+  let nonTerminalNames = '';
+  for (let name of nonTerminals) {
+    nonTerminalNames += name + '|';
+  }
+  nonTerminalNames = nonTerminalNames.substr(0, nonTerminalNames.length - 1);
+
+  let checkRegExpPattern = '^([^$]|\\$\\$|\\$\\{\\s*(' + nonTerminalNames + ')\\s*\\}+)*$';
+  let checkRegExp = new RegExp(checkRegExpPattern);
+  if (!checkRegExp.test(template['textTask'])) {
+    throw new Error('Test text has syntax error')
+  }
+}
+
 module.exports = {
   templateTestTaskFormToTemplate: templateTestTaskFormToTemplate,
   translateTemplateTestTaskToForm: translateTemplateTestTaskToForm,
@@ -734,5 +911,6 @@ module.exports = {
   translateTestTaskToGIFT: translateTestTaskToGIFT,
   checkTemplateTest: checkTemplateTest,
   generateTestFormTemplateTest: generateTestFromTemplateTest,
-  translateTestToGIFT: translateTestToGIFT
+  translateTestToGIFT: translateTestToGIFT,
+  checkTemplateTask: checkTemplateTask
 };
