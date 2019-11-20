@@ -85,7 +85,8 @@ function test_negative_TemplateTestTaskGrammarTranslation() {
     'a=$|${b}|qwe$|. b=${a}zxc|${a}qwe. c=[${b}${a}].',
     'a=[$|$rInteger(5,123)|$|$rFloat(1,4.2,3).b=2+${a}|2-${b}.',
     'a=..$||$|..b=[..${a}....].',
-    '     .      ', 'a = 123 .', 'a=.', 'asd.', 'as', 'asd=as$.', 'a=[].', 'a     =asd.', 'a     =asd', '     a     =        asd.'];
+    '     .      ', 'a = 123 .', 'a=.', 'asd.', 'as', 'asd=as$.', 'a=[].', 'a     =asd.', 'a     =asd',
+    '     a     =        asd.', 'a=123|321|asd|${a}|42343.'];
 
   for (let i=0;i<testCases.length;++i) {
     ASSERT.throws(function (){
@@ -118,28 +119,56 @@ function test_positive_TemplateTestTaskFormTranslation() {
 function test_positive_checkTemplateTask() {
   let testCases = [
     'a=asd.','a=asd|as|a.    b=[zxc${a}|(zx|c)].     ',
-    'a=[asd|123|(qwerty|zxcv|798)]|iop$|.'
+    'a=[asd|123|(qwerty|zxcv|798)]|iop$|.', 'a=[[[(([asd]))]]].   b=a|as"|${a}.',
+    'a=asd|zxc$|.\n\nb=[1|2|2+${a}$]].', 'a=$|$${b}|qwe$|. b=${a}zxc|${a}qwe. c=[${b}${a}].',
+    'a=$[123|3.b=3$]|4$].', 'a=$[$|$rInteger$(5,123$)|$|$rFloat$(1,4$.2,3$).b=2+${a}|2-${a}.',
+    'a=$.$.$||$|$.$..b=[$.$.${a}$.$.$.$.].',
+    '                ',
+    '   a=ewq|((A|B|[([D,C])])|E|[[[F]]])|qwe.',
+    '   b=ewq|((A|B|[([D,C])])|E|[[[F]]])|qwe.  \n\n\t\t  \t a=q|qq|[${b}].',
+    'a=a.b=b.c=c.a1=${a}${b}${c}.'
   ];
 
   for (let i=0;i<testCases.length;++i) {
     ASSERT.doesNotThrow(function (){
+      //console.log(testCases[i]);
+      translator.checkTemplateTask({header: '', grammar: testCases[i], textTask: ''});
+    });
+  }
+}
+
+function test_negative_checkTemplateTask() {
+  let testCases = [
+    'a=asd', 'aasd.', 'a=asd|zxc|.\n\nb=[1|2|2+${a}]].', 'a=asd||zxc$|.\n\nb=[1|2|2+${a}]].',
+    'a=asd|zxc$|.\n\nb=[1|2|2+${b}$]].', 'a=asd|zxc$|.\n\nb=[1|2|2+${a}$]]', 'a=asd|zxc$|.\n\nb=[1|2|2+${a}$]]..',
+    'a=asd|zxc$|.\n\nb=[1|2|2+${a}]]', 'a=asd|zxc$|\n\nb=[1|2|2+${a}$]].',
+    'a=$|${b}|qwe$|. b=${a}zxc|${a}qwe. c=[${b}${a}].', 'a=([$|[${b}]|qwe$|]). b=${a}zxc|${a}qwe. c=[${b}${a}].',
+    'a=$[$|$rInteger(5,123)|$|$rFloat(1,4.2,3).b=2+${a}|2-${b}.',
+    'a=$.$.$||$|$..b=[$.$.${a}$.$.$.$..', 'a=$.$.$||$|$..b=$.$.${a}$.$.$.$..]',
+    '     .      ', 'a  123 .', 'a=.', 'asd.', 'as', 'asd=as$.', 'a=[].', 'a     =asd', 'a=|.',
+    'a=[[[[((()))]]]].', 'a=((()).', 'a=(((()))).'
+  ];
+
+  for (let i=0;i<testCases.length;++i) {
+    ASSERT.throws(function (){
+      translator.checkTemplateTask({header: '', grammar: testCases[i], textTask: ''});
       console.log(testCases[i]);
-      let template = translator.checkTemplateTask({header: '', grammar: testCases[i], textTask: ''});
     });
   }
 }
 
 function run() {
-  // test_positive_TemplateTestTaskGrammarTranslation();
-  // test_negative_TemplateTestTaskGrammarTranslation();
-  //
-  // test_positive_TemplateTestTaskFormTranslation();
+  test_positive_TemplateTestTaskGrammarTranslation();
+  test_negative_TemplateTestTaskGrammarTranslation();
+
+  test_positive_TemplateTestTaskFormTranslation();
 
   test_positive_checkTemplateTask();
+  test_negative_checkTemplateTask();
 
-  // for (let i=0;i<100;++i) {
-  //   test_positive_Translator();
-  // }
+  for (let i=0;i<100;++i) {
+    test_positive_Translator();
+  }
 }
 
 

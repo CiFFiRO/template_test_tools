@@ -260,17 +260,17 @@ function checkTemplateTestTask(templateTestTask) {
       if (nonTerminals.has(nonTerminal)) {
         throw new Error(`Duplicate non terminal name - ${nonTerminal}`);
       }
-      if (nonTerminalsNamesRegExp.length > 0) {
-        nonTerminalsNamesRegExp += '|' + nonTerminal;
-      } else {
-        nonTerminalsNamesRegExp += nonTerminal;
-      }
       nonTerminals.add(nonTerminal);
       let regexp = new RegExp(`^([^$]|\\$\\$|\\$(${FUNCTIONS_RE})|\\$\\{\\s*(${nonTerminalsNamesRegExp})\\s*\\})*$`);
       for (let i = 0; i < templateTestTask['rules'][nonTerminal].length; ++i) {
         if (!regexp.test(templateTestTask['rules'][nonTerminal][i])) {
           throw new Error(`Non terminal ${nonTerminal} alternative has syntax error`);
         }
+      }
+      if (nonTerminalsNamesRegExp.length > 0) {
+        nonTerminalsNamesRegExp += '|' + nonTerminal;
+      } else {
+        nonTerminalsNamesRegExp += nonTerminal;
       }
     }
   }
@@ -748,7 +748,6 @@ function mapFromEBNF(grammar) {
   grammar = grammar.replace(/\$=/g, '${_assignment}');
   grammar = grammar.replace(/"/g, '\\"');
 
-  // [A|B]|(C|D|E)
   grammar = grammar.replace(/]\|\[/g, '], [');
   grammar = grammar.replace(/\)\|\(/g, '), (');
   grammar = grammar.replace(/]\|\(/g, '], (');
@@ -759,7 +758,12 @@ function mapFromEBNF(grammar) {
   grammar = grammar.replace(/\|\[/g, '", [');
 
   grammar = grammar.replace(/\|/g, '", "');
-  console.log(grammar);
+  grammar = grammar.trim();
+
+  if (grammar.length === 0) {
+    return {};
+  }
+
   let index = 0;
   function translateOpenBrackets(nextBracket, nextOther) {
     if (index+1 === grammar.length) {
@@ -792,6 +796,7 @@ function mapFromEBNF(grammar) {
       ++index;
     }
   }
+  let isMayBeNonTerminal = true;
   while (index < grammar.length) {
     if (grammar[index] === '(') {
       translateOpenBrackets('[', '["');
@@ -802,18 +807,24 @@ function mapFromEBNF(grammar) {
     } else if (index > 0 && grammar[index-1] === '=') {
       grammar = grammar.substring(0, index) + '"' + grammar.substring(index);
       ++index;
+      isMayBeNonTerminal = false;
     } else if (index-1 > 0 && grammar[index] === '.' && grammar[index-1] !== ']' && grammar[index-1] !== ')') {
       grammar = grammar.substring(0, index) + '"' + grammar.substring(index);
+      isMayBeNonTerminal = true;
       index += 2;
+    } else if (grammar[index] === '.') {
+      isMayBeNonTerminal = true;
+      ++index;
+    } else if (isMayBeNonTerminal && isSpace(grammar[index]) && grammar[index] !== ' ') {
+      grammar = grammar.substring(0, index) + grammar.substring(index+1);
     } else {
       ++index;
     }
   }
 
-  console.log(grammar);
   grammar = grammar.replace(/=/g, '": [');
   grammar = grammar.replace(/\./g, '], "');// !
-  console.log(grammar);
+
   grammar = grammar.replace(/\${_condition}/g, '|');
   grammar = grammar.replace(/\${_parenthesisOpen}/g, '(');
   grammar = grammar.replace(/\${_parenthesisClose}/g, ')');
@@ -821,19 +832,18 @@ function mapFromEBNF(grammar) {
   grammar = grammar.replace(/\${_squareBracketClose}/g, ']');
   grammar = grammar.replace(/\${_end}/g, '.');
   grammar = grammar.replace(/\${_assignment}/g, '=');
-  console.log(grammar);
+
   grammar = grammar.trim();
   grammar = '"' + grammar;
-  if (grammar.length > 2) {
+  if (grammar.length > 3) {
     grammar = grammar.substring(0, grammar.length-3);
   }
   grammar = `{${grammar}}`;
-  console.log(grammar);
+
   let result = {};
   try {
     result = JSON.parse(grammar);
   } catch (exception) {
-    console.log(exception.message);
     throw new Error('Grammar has error');
   }
 
@@ -861,6 +871,10 @@ function checkTemplateTask(template) {
       if (newNonTerminal in mapGenerate) {
         throw new Error(`Non terminal ${newNonTerminal} has redefinition`);
       }
+      if (map[nonTerminal].length === 1 && typeof map[nonTerminal][0] === 'string'
+        && map[nonTerminal][0].length === 0) {
+        throw new Error(`Non terminal ${newNonTerminal} has only one alternative and she's empty`);
+      }
       mapGenerate[newNonTerminal] = map[nonTerminal];
     }
   }
@@ -875,17 +889,33 @@ function checkTemplateTask(template) {
       if (nonTerminals.has(nonTerminal)) {
         throw new Error(`Duplicate non terminal name - ${nonTerminal}`);
       }
+
+      nonTerminals.add(nonTerminal);
+      let regexp = new RegExp(`^([^$]|\\$\\$|\\$(${FUNCTIONS_RE})|\\$\\{\\s*(${nonTerminalsNamesRegExp})\\s*\\})*$`);
+      function checkAlternatives(content) {
+        if (typeof content === 'string') {
+          if (!regexp.test(content)) {
+            throw new Error(`Non terminal ${nonTerminal} alternative has syntax error`);
+          }
+        } else {
+          let numberEmptyAlternatives = 0;
+          for (let i=0;i<content.length;++i) {
+            if (typeof content[i] === 'string' && content[i].length === 0) {
+              ++numberEmptyAlternatives;
+            }
+            checkAlternatives(content[i]);
+          }
+          if (numberEmptyAlternatives > 1) {
+            throw new Error(`Non terminal ${nonTerminal} has more then one empty alternative`);
+          }
+        }
+      }
+
+      checkAlternatives(mapGenerate[nonTerminal]);
       if (nonTerminalsNamesRegExp.length > 0) {
         nonTerminalsNamesRegExp += '|' + nonTerminal;
       } else {
         nonTerminalsNamesRegExp += nonTerminal;
-      }
-      nonTerminals.add(nonTerminal);
-      let regexp = new RegExp(`^([^$]|\\$\\$|\\$(${FUNCTIONS_RE})|\\$\\{\\s*(${nonTerminalsNamesRegExp})\\s*\\})*$`);
-      for (let i = 0; i < mapGenerate[nonTerminal].length; ++i) {
-        if (!regexp.test(mapGenerate[nonTerminal][i])) {
-          throw new Error(`Non terminal ${nonTerminal} alternative has syntax error`);
-        }
       }
     }
   }
