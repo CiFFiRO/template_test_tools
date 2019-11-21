@@ -3,6 +3,10 @@ const FUNCTIONS_RE = 'rInteger\\(\\s*[+-]?[0-9]+\\s*,\\s*[+-]?[0-9]+\\s*\\)|' +
   'rFloat\\(\\s*[-+]?(?:\\d*\\.?\\d+|\\d+\\.?\\d*)(?:[eE][-+]?\\d+)?\\s*,' +
   '\\s*[-+]?(?:\\d*\\.?\\d+|\\d+\\.?\\d*)(?:[eE][-+]?\\d+)?\\s*,\\s*[+]?[1-9]+[0-9]*\\s*\\)|' +
   'rElement\\(\\s*(\\s*[a-zA-Z0-9]+\\s*,)*\\s*[a-zA-Z0-9]+\\s*\\)';
+const FUNCTIONS_GRAMMAR_TASK_RE = 'rInteger\\$\\(\\s*[+-]?[0-9]+\\s*,\\s*[+-]?[0-9]+\\s*\\$\\)|' +
+  'rFloat\\$\\(\\s*[-+]?(?:\\d*\\$\\.?\\d+|\\d+\\$\\.?\\d*)(?:[eE][-+]?\\d+)?\\s*,' +
+  '\\s*[-+]?(?:\\d*\\$\\.?\\d+|\\d+\\$\\.?\\d*)(?:[eE][-+]?\\d+)?\\s*,\\s*[+]?[1-9]+[0-9]*\\s*\\$\\)|' +
+  'rElement\\$\\(\\s*(\\s*[a-zA-Z0-9]+\\s*,)*\\s*[a-zA-Z0-9]+\\s*\\$\\)';
 const PREGENERATED_ANSWER_SCRIPT_PART = '' +
   'let __FALSE_OPTIONS = [];' +
   'let __ANSWER = -1;' +
@@ -288,6 +292,87 @@ function checkTemplateTestTask(templateTestTask) {
   }
 }
 
+function replaceFunctions(production) {
+  function nextFunction(production) {
+    let i = 0;
+    while (i < production.length) {
+      if (i + 1 < production.length && production[i] === '$' && production[i + 1] !== '$' && production[i + 1] !== '{') {
+        let startIndex = i;
+        let name = '';
+        ++i;
+        while (isAlpha(production[i]) || isDigit(production[i])) {
+          name += production[i];
+          ++i;
+        }
+
+        let arguments = [];
+        while (i < production.length && production[i] !== ')') {
+          if (production[i] !== '(' && production[i] !== ')' && production[i] !== ',' && !isSpace(production[i])) {
+            let argument = '';
+            while (production[i] !== ')' && production[i] !== ',' && !isSpace(production[i])) {
+              argument += production[i];
+              ++i;
+            }
+            arguments.push(argument);
+          } else {
+            ++i;
+          }
+        }
+
+        return [startIndex, i, name, arguments];
+      } else {
+        ++i;
+      }
+    }
+
+    return null;
+  }
+
+  let result = production;
+  while (true) {
+    let info = nextFunction(result);
+    if (info === null) {
+      break;
+    }
+
+    let name = info[2];
+    let arguments = info[3];
+
+    if (name === 'rInteger') {
+      let min = +arguments[0];
+      let max = +arguments[1];
+      if (min > max) {
+        throw new Error('rInteger: interval is not exist');
+      }
+
+      let value = rInteger(min, max);
+      result = result.substring(0, info[0]) + value + result.substring(info[1] + 1);
+    } else if (name === 'rFloat') {
+      let min = +arguments[0];
+      let max = +arguments[1];
+      let length = +arguments[2];
+      if (min > max) {
+        throw new Error('rFloat: interval is not exist');
+      }
+
+      let value = rFloat(min, max, length);
+      result = result.substring(0, info[0]) + value + result.substring(info[1] + 1);
+    } else if (name === 'rElement') {
+      // TODO: протестить на работоспособность
+      if (arguments.length === 0) {
+        throw new Error('rElement: does not have arguments');
+      }
+
+      let value = arguments[getRandomInt(0, arguments.length)];
+      result = result.substring(0, info[0]) + value + result.substring(info[1] + 1);
+    } else {
+      throw new Error('Function ' + name + ' is not exist');
+    }
+  }
+
+  return result;
+}
+
 function generateTestTaskFromTemplateTestTask(templateTestTask) {
   if (IS_CSHARP_INTERPRETER) {
     templateTestTask = JSON.parse(templateTestTask);
@@ -296,86 +381,6 @@ function generateTestTaskFromTemplateTestTask(templateTestTask) {
   let result = {};
   result['type'] = templateTestTask['type'];
 
-  function replaceFunctions(production) {
-    function nextFunction(production) {
-      let i = 0;
-      while (i < production.length) {
-        if (i + 1 < production.length && production[i] === '$' && production[i + 1] !== '$') {
-          let startIndex = i;
-          let name = '';
-          ++i;
-          while (isAlpha(production[i]) || isDigit(production[i])) {
-            name += production[i];
-            ++i;
-          }
-
-          let arguments = [];
-          while (i < production.length && production[i] !== ')') {
-            if (production[i] !== '(' && production[i] !== ')' && production[i] !== ',' && !isSpace(production[i])) {
-              let argument = '';
-              while (production[i] !== ')' && production[i] !== ',' && !isSpace(production[i])) {
-                argument += production[i];
-                ++i;
-              }
-              arguments.push(argument);
-            } else {
-              ++i;
-            }
-          }
-
-          return [startIndex, i, name, arguments];
-        } else {
-          ++i;
-        }
-      }
-
-      return null;
-    }
-
-    let result = production;
-    while (true) {
-      let info = nextFunction(result);
-      if (info === null) {
-        break;
-      }
-
-      let name = info[2];
-      let arguments = info[3];
-
-      if (name === 'rInteger') {
-        let min = +arguments[0];
-        let max = +arguments[1];
-        if (min > max) {
-          throw new Error('rInteger: interval is not exist');
-        }
-
-        let value = rInteger(min, max);
-        result = result.substring(0, info[0]) + value + result.substring(info[1] + 1);
-      } else if (name === 'rFloat') {
-        let min = +arguments[0];
-        let max = +arguments[1];
-        let length = +arguments[2];
-        if (min > max) {
-          throw new Error('rFloat: interval is not exist');
-        }
-
-        let value = rFloat(min, max, length);
-        result = result.substring(0, info[0]) + value + result.substring(info[1] + 1);
-      } else if (name === 'rElement') {
-        // TODO: протестить на работоспособность
-        if (arguments.length === 0) {
-          throw new Error('rElement: does not have arguments');
-        }
-
-        let value = arguments[getRandomInt(0, arguments.length)];
-        result = result.substring(0, info[0]) + value + result.substring(info[1] + 1);
-      } else {
-        throw new Error('Function ' + name + ' is not exist');
-      }
-    }
-
-    return result;
-  }
 
   let alternativeIndexForNonTerminals = {};
   let alternativeForNonTerminals = {};
@@ -514,8 +519,9 @@ function translateTestTaskToGIFT(testTask) {
 
     return rSubArray(result, result.length);
   }
-
-  let result = testTask['testText'] + '{\n';
+  let date = new Date(Date.now());
+  let preamble = '// generated date: ' + date.toString();
+  let result = `${preamble}\n\n\n${testTask['testText']}{\n`;
   if (testTask['type'] === SHORT_ANSWER_TYPE) {
     for (let optionIndex = 0; optionIndex < testTask['answers'].length; ++optionIndex) {
       result += '=' + testTask['answers'][optionIndex] + '\n';
@@ -840,17 +846,39 @@ function mapFromEBNF(grammar) {
   }
   grammar = `{${grammar}}`;
 
-  let result = {};
+  let rawMap = {};
   try {
-    result = JSON.parse(grammar);
+    rawMap = JSON.parse(grammar);
   } catch (exception) {
     throw new Error('Grammar has error');
   }
 
-  return result;
+  let mapGenerate = {};
+  for (let nonTerminal in rawMap) {
+    if (rawMap.hasOwnProperty(nonTerminal)) {
+      let newNonTerminal = nonTerminal.trim();
+      if (!/^[a-zA-Z]+[0-9a-zA-Z]*$/.test(newNonTerminal)) {
+        throw new Error(`Non terminal ${newNonTerminal} has syntax error`);
+      }
+      if (newNonTerminal in mapGenerate) {
+        throw new Error(`Non terminal ${newNonTerminal} has redefinition`);
+      }
+      if (rawMap[nonTerminal].length === 1 && typeof rawMap[nonTerminal][0] === 'string'
+        && rawMap[nonTerminal][0].length === 0) {
+        throw new Error(`Non terminal ${newNonTerminal} has only one alternative and she's empty`);
+      }
+      mapGenerate[newNonTerminal] = rawMap[nonTerminal];
+    }
+  }
+
+  return mapGenerate;
 }
 
 function checkTemplateTask(template) {
+  if (IS_CSHARP_INTERPRETER) {
+    template = JSON.parse(template);
+  }
+
   if (!template.hasOwnProperty('header') || !template.hasOwnProperty('grammar')
     || !template.hasOwnProperty('textTask')) {
     throw new Error('Bad json data');
@@ -860,24 +888,7 @@ function checkTemplateTask(template) {
     throw new Error('Bad template property types');
   }
 
-  let map = mapFromEBNF(template['grammar']);
-  let mapGenerate = {};
-  for (let nonTerminal in map) {
-    if (map.hasOwnProperty(nonTerminal)) {
-      let newNonTerminal = nonTerminal.trim();
-      if (!/^[a-zA-Z]+[0-9a-zA-Z]*$/.test(newNonTerminal)) {
-        throw new Error(`Non terminal ${newNonTerminal} has syntax error`);
-      }
-      if (newNonTerminal in mapGenerate) {
-        throw new Error(`Non terminal ${newNonTerminal} has redefinition`);
-      }
-      if (map[nonTerminal].length === 1 && typeof map[nonTerminal][0] === 'string'
-        && map[nonTerminal][0].length === 0) {
-        throw new Error(`Non terminal ${newNonTerminal} has only one alternative and she's empty`);
-      }
-      mapGenerate[newNonTerminal] = map[nonTerminal];
-    }
-  }
+  let mapGenerate = mapFromEBNF(template['grammar']);
 
   let nonTerminals = new Set();
   let nonTerminalsNamesRegExp = '';
@@ -933,6 +944,160 @@ function checkTemplateTask(template) {
   }
 }
 
+function generateTaskFromTemplateTask(template) {
+  if (IS_CSHARP_INTERPRETER) {
+    template = JSON.parse(template);
+  }
+
+  let nonTerminalToTerminal = {};
+  let mapGenerate = mapFromEBNF(template['grammar']);
+  function generateAlternative(content) {
+    if (typeof content === 'string') {
+      return content;
+    }
+
+    let index = getRandomInt(0, content.length);
+    return generateAlternative(content[index]);
+  }
+  function replaceNonTerminals(text) {
+    let result = text;
+    for (let nonTerminal in nonTerminalToTerminal) {
+      if (nonTerminalToTerminal.hasOwnProperty(nonTerminal)) {
+        let regexpScheme = '\\$\\{\\s*' + nonTerminal + '\\s*\\}';
+        let regexp = new RegExp(regexpScheme, 'g');
+        result = result.replace(regexp, nonTerminalToTerminal[nonTerminal]);
+      }
+    }
+
+    result = result.replace(/\$\$/g, '$');
+
+    return result;
+  }
+
+  for (let nonTerminal in mapGenerate) {
+    if (mapGenerate.hasOwnProperty(nonTerminal)) {
+      let alternative = generateAlternative(mapGenerate[nonTerminal]);
+      nonTerminalToTerminal[nonTerminal] = replaceFunctions(replaceNonTerminals(alternative));
+    }
+  }
+
+  let result = {task: template['textTask']};
+  for (let nonTerminal in nonTerminalToTerminal) {
+    if (nonTerminalToTerminal.hasOwnProperty(nonTerminal)) {
+      let regexpScheme = '\\$\\{\\s*' + nonTerminal + '\\s*\\}';
+      let regexp = new RegExp(regexpScheme, 'g');
+      result.task = result.task.replace(regexp, nonTerminalToTerminal[nonTerminal]);
+    }
+  }
+
+  if (IS_CSHARP_INTERPRETER) {
+    return JSON.stringify(result);
+  }
+
+  return result;
+}
+
+function translateTaskToTXT(task) {
+  if (IS_CSHARP_INTERPRETER) {
+    task = JSON.parse(task);
+  }
+
+  let result = '';
+  result += task.task;
+
+  return result;
+}
+
+function templateGroupTaskFormToTemplate(header, type, templates) {
+  if (IS_CSHARP_INTERPRETER) {
+    templates = JSON.parse(templates);
+  }
+
+  if (typeof header !== 'string' || typeof templates !== 'object' || typeof type !== 'number') {
+    throw new Error('Argument(s) type(s) is not current');
+  }
+  if (type < STRONG_ORDER_TYPE || type > RANDOM_ORDER_TYPE) {
+    throw new Error('Type test task is not current');
+  }
+
+  let result = { title: header, orderType: type, arrayTemplateTask: templates };
+
+  if (IS_CSHARP_INTERPRETER) {
+    return JSON.stringify(result);
+  }
+
+  return result;
+}
+
+function checkTemplateGroupTask(template) {
+  if (IS_CSHARP_INTERPRETER) {
+    template = JSON.parse(template);
+  }
+
+  if (!template.hasOwnProperty('orderType') || !template.hasOwnProperty('arrayTemplateTask') ||
+    !template.hasOwnProperty('title')) {
+    return false;
+  }
+  if (typeof template.orderType !== 'number' || typeof template.arrayTemplateTask !== 'object'
+    || typeof template.title !== 'string') {
+    return false;
+  }
+  if (template.orderType > RANDOM_ORDER_TYPE || template.orderType < STRONG_ORDER_TYPE) {
+    return false;
+  }
+
+  for (let i = 0; i < template.arrayTemplateTask.length; ++i) {
+    try {
+      checkTemplateTask(template.arrayTemplateTask[i]);
+    } catch (error) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function generateGroupTaskFromTemplateGroupTask(template) {
+  if (IS_CSHARP_INTERPRETER) {
+    template = JSON.parse(template);
+  }
+
+  let result = [];
+  let arrayTemplateTask = template.arrayTemplateTask.slice(0);
+
+  if (template.orderType === RANDOM_ORDER_TYPE) {
+    arrayTemplateTask = rSubArray(arrayTemplateTask, arrayTemplateTask.length);
+  }
+
+  for (let i = 0; i < arrayTemplateTask.length; ++i) {
+    let task = generateTaskFromTemplateTask(arrayTemplateTask[i]);
+    if (IS_CSHARP_INTERPRETER) {
+      task = JSON.parse(task);
+    }
+    result.push(task);
+  }
+
+  if (IS_CSHARP_INTERPRETER) {
+    return JSON.stringify(result);
+  }
+
+  return result;
+}
+
+function translateGroupTaskToTXT(groupTask) {
+  let date = new Date(Date.now());
+  let preamble = '// generated date: ' + date.toString();
+  let space = '//--------------------------------------------------';
+  let result = preamble + '\n\n\n';
+
+  for (let i=0;i<groupTask.length;++i) {
+    result += groupTask[i].task + '\n\n';
+    result += space + '\n\n';
+  }
+
+  return result;
+}
+
 module.exports = {
   templateTestTaskFormToTemplate: templateTestTaskFormToTemplate,
   translateTemplateTestTaskToForm: translateTemplateTestTaskToForm,
@@ -942,5 +1107,10 @@ module.exports = {
   checkTemplateTest: checkTemplateTest,
   generateTestFormTemplateTest: generateTestFromTemplateTest,
   translateTestToGIFT: translateTestToGIFT,
-  checkTemplateTask: checkTemplateTask
+  checkTemplateTask: checkTemplateTask,
+  generateTaskFromTemplateTask: generateTaskFromTemplateTask,
+  translateTaskToTXT: translateTaskToTXT,
+  checkTemplateGroupTask: checkTemplateGroupTask,
+  generateGroupTaskFromTemplateGroupTask: generateGroupTaskFromTemplateGroupTask,
+  translateGroupTaskToTXT: translateGroupTaskToTXT
 };

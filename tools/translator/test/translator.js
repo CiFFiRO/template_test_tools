@@ -2,7 +2,7 @@ const ASSERT = require('chai').assert;
 const FS = require('fs');
 const translator = require('../translator.js');
 
-function test_positive_Translator() {
+function test_positive_TranslatorTestTask() {
   function TTT2T(fileNames) {
     let result = [];
     for (let i=0;i<fileNames.length;++i) {
@@ -41,6 +41,48 @@ function test_positive_Translator() {
   ASSERT.doesNotThrow(function (){
     let tt = translator.translateTestToGIFT(TTT2T(getTT(0, 20)));
     //console.log(tt);
+  });
+}
+
+function test_positive_TranslatorTask() {
+  function TT2T(fileNames) {
+    let result = [];
+    for (let i=0;i<fileNames.length;++i) {
+      let data = FS.readFileSync(fileNames[i]);
+      let tt = JSON.parse(data);
+      ASSERT.doesNotThrow(function () {
+        translator.checkTemplateTask(tt);
+      });
+      ASSERT.doesNotThrow(function () {
+        let t = translator.generateTaskFromTemplateTask(tt);
+        result.push(t);
+      });
+    }
+
+    return result;
+  }
+
+  function getT(beginIndex, endIndex) {
+    const prefixTTTFileName = 'tools/translator/test/tt/tt_';
+    let tt = [];
+    for (let i = beginIndex; i < endIndex; ++i) {
+      let fileName = prefixTTTFileName;
+      if (i<10) {
+        fileName += '0' + i;
+      } else {
+        fileName += i;
+      }
+      fileName += '.json';
+
+      tt.push(fileName);
+    }
+
+    return tt;
+  }
+
+  ASSERT.doesNotThrow(function (){
+    let tt = translator.translateGroupTaskToTXT(TT2T(getT(0, 5)));
+    console.log(tt);
   });
 }
 
@@ -167,7 +209,8 @@ function run() {
   test_negative_checkTemplateTask();
 
   for (let i=0;i<100;++i) {
-    test_positive_Translator();
+    test_positive_TranslatorTestTask();
+    test_positive_TranslatorTask();
   }
 }
 
