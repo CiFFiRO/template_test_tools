@@ -1,1 +1,1 @@
-{"header": "head", "grammar": "a=$|$${b}|qwe$|. b=${a}zxc|${a}qwe. c=[${b}${a}].", "textTask":"${a}+${b}+${c}"}
+{"title": "head", "grammar": "a=$|$${b}|qwe$|. b=${a}zxc|${a}qwe. c=[${b}${a}].", "textTask":"${a}+${b}+${c}"}

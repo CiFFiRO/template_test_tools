@@ -735,7 +735,7 @@ function templateTestFormToTemplate(header, type, templates) {
 }
 
 function templateTaskFormToTemplate(header, grammar, textTask) {
-  let result = {header:header, grammar:grammar, textTask:textTask};
+  let result = {title:header, grammar:grammar, textTask:textTask};
 
   if (IS_CSHARP_INTERPRETER) {
     return JSON.stringify(result);
@@ -829,7 +829,7 @@ function mapFromEBNF(grammar) {
   }
 
   grammar = grammar.replace(/=/g, '": [');
-  grammar = grammar.replace(/\./g, '], "');// !
+  grammar = grammar.replace(/\./g, '], "');
 
   grammar = grammar.replace(/\${_condition}/g, '|');
   grammar = grammar.replace(/\${_parenthesisOpen}/g, '(');
@@ -879,11 +879,11 @@ function checkTemplateTask(template) {
     template = JSON.parse(template);
   }
 
-  if (!template.hasOwnProperty('header') || !template.hasOwnProperty('grammar')
+  if (!template.hasOwnProperty('title') || !template.hasOwnProperty('grammar')
     || !template.hasOwnProperty('textTask')) {
     throw new Error('Bad json data');
   }
-  if (typeof template['header'] !== 'string' || typeof template['grammar'] !== 'string'
+  if (typeof template['title'] !== 'string' || typeof template['grammar'] !== 'string'
     || typeof template['textTask'] !== 'string') {
     throw new Error('Bad template property types');
   }
@@ -1085,6 +1085,10 @@ function generateGroupTaskFromTemplateGroupTask(template) {
 }
 
 function translateGroupTaskToTXT(groupTask) {
+  if (IS_CSHARP_INTERPRETER) {
+    groupTask = JSON.parse(groupTask);
+  }
+
   let date = new Date(Date.now());
   let preamble = '// generated date: ' + date.toString();
   let space = '//--------------------------------------------------';
