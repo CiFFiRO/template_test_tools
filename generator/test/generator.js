@@ -1,6 +1,6 @@
 const ASSERT = require('chai').assert;
 const FS = require('fs');
-const translator = require('../translator.js');
+const translator = require('../generator.js');
 
 function test_positive_TranslatorTestTask() {
   function TTT2T(fileNames) {
@@ -21,7 +21,7 @@ function test_positive_TranslatorTestTask() {
   }
 
   function getTT(beginIndex, endIndex) {
-    const prefixTTTFileName = 'tools/translator/test/ttt/ttt_';
+    const prefixTTTFileName = 'generator/test/ttt/ttt_';
     let tt = [];
     for (let i = beginIndex; i < endIndex; ++i) {
       let fileName = prefixTTTFileName;
@@ -63,7 +63,7 @@ function test_positive_TranslatorTask() {
   }
 
   function getT(beginIndex, endIndex) {
-    const prefixTTTFileName = 'tools/translator/test/tt/tt_';
+    const prefixTTTFileName = 'generator/test/tt/tt_';
     let tt = [];
     for (let i = beginIndex; i < endIndex; ++i) {
       let fileName = prefixTTTFileName;
@@ -82,7 +82,7 @@ function test_positive_TranslatorTask() {
 
   ASSERT.doesNotThrow(function (){
     let tt = translator.translateGroupTaskToTXT(TT2T(getT(0, 5)));
-    console.log(tt);
+    //console.log(tt);
   });
 }
 
@@ -174,7 +174,7 @@ function test_positive_checkTemplateTask() {
   for (let i=0;i<testCases.length;++i) {
     ASSERT.doesNotThrow(function (){
       //console.log(testCases[i]);
-      translator.checkTemplateTask({header: '', grammar: testCases[i], textTask: ''});
+      translator.checkTemplateTask({title: '', grammar: testCases[i], textTask: ''});
     });
   }
 }
@@ -193,8 +193,8 @@ function test_negative_checkTemplateTask() {
 
   for (let i=0;i<testCases.length;++i) {
     ASSERT.throws(function (){
-      translator.checkTemplateTask({header: '', grammar: testCases[i], textTask: ''});
-      console.log(testCases[i]);
+      translator.checkTemplateTask({title: '', grammar: testCases[i], textTask: ''});
+      //console.log(testCases[i]);
     });
   }
 }

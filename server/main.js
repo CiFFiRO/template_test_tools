@@ -2,15 +2,16 @@ const express = require("express");
 const app = express();
 const path = require('path');
 const cookieParser = require('cookie-parser');
-const validator = require('./validator');
+const Validator = require('./validator');
 const mysql = require("mysql2");
 const CryptoJS = require('crypto-js');
 const nodemailer = require('nodemailer');
-const translator = require('../tools/translator/translator');
+const generator = require('../generator/generator');
 const zlib = require('zlib');
-const log = require('./log');
+const Log = require('./log');
 const process = require('process');
 const archiver = require('archiver');
+const TemplateAction = require('./template_action');
 
 
 const SERVER_LISTEN_PORT = 4001;
@@ -46,14 +47,14 @@ function uncompressString(data) {
   return zlib.inflateSync(Buffer.from(data, 'base64')).toString();
 }
 
-let logining = new log(LOG_FILE_NAME);
+let logging = new Log(LOG_FILE_NAME);
 
-logining.log('Server start');
+logging.log('Server start');
 
 let signals = 'SIGTERM SIGPIPE SIGBUS SIGFPE SIGSEGV SIGILL SIGINT SIGHUP SIGBREAK'.split(' ');
 for (let i=0;i<signals.length;++i) {
   process.on(signals[i], (signal) => {
-    logining.fatal(`Server stop by receive ${signal} signal`);
+    logging.fatal(`Server stop by receive ${signal} signal`);
     process.exit(0);
   });
 }
@@ -71,10 +72,10 @@ const transporter = nodemailer.createTransport({
 
 transporter.verify((error, success) => {
   if (error) {
-    logining.fatal("Mail connection - " + error.message);
+    logging.fatal("Mail connection - " + error.message);
     process.exit(1);
   } else {
-    logining.log('Mail connect success');
+    logging.log('Mail connect success');
   }
 });
 
@@ -86,9 +87,9 @@ const connection = mysql.createConnection({
 }).promise();
 
 connection.connect()
-  .then(() => {logining.log('MySQL connect success');})
+  .then(() => {logging.log('MySQL connect success');})
   .catch(error => {
-  logining.fatal("MySQL connection - " + error.message);
+  logging.fatal("MySQL connection - " + error.message);
   process.exit(1);
 });
 
@@ -100,7 +101,7 @@ app.use('/tools', express.static(path.join(__dirname, "../tools")));
 app.use(express.static(path.join(__dirname, "../web_application")));
 
 app.post("/registration", (request, response) => {
-  if (!validator.registrationForm(request.body)) {
+  if (!Validator.registrationForm(request.body)) {
     response.send({ok: false});
     return;
   }
@@ -129,28 +130,28 @@ app.post("/registration", (request, response) => {
                 transporter.sendMail(mailOptions, function(error, info){
                   if (error) {
                     response.send({ok: false});
-                    logining.error('Can\'t send mail - ' + error.message);
+                    logging.error('Can\'t send mail - ' + error.message);
                   } else {
                     response.send({ok: true});
                   }
                 });
               })
               .catch(err => {
-                logining.error('Insert into `server`.`registration`: ' + err.message);
+                logging.error('Insert into `server`.`registration`: ' + err.message);
                 response.send({ok: false});
               });
           })
           .catch(err => {
-            logining.error('Insert into `server`.`form`: ' + err.message);
+            logging.error('Insert into `server`.`form`: ' + err.message);
             response.send({ok: false});
           });
       } else {
-        logining.error('Try register not unique form(=' + request.body + ')');
+        logging.error('Try register not unique form(=' + request.body + ')');
         response.send({ok: false});
       }
     })
     .catch(err => {
-      logining.error('Select `server`.`user`: ' + err.message);
+      logging.error('Select `server`.`user`: ' + err.message);
       response.send({ok: false});
     });
 });
@@ -186,29 +187,29 @@ app.post("/registration_confirm", (request, response) => {
                           response.send({ok: true});
                         })
                         .catch(err => {
-                          logining.error('Insert into `server`.`description`: ' + err.message);
+                          logging.error('Insert into `server`.`description`: ' + err.message);
                           response.send({ok: false});
                         });
                     })
                     .catch(err => {
-                      logining.error('Insert into `server`.`user`: ' + err.message);
+                      logging.error('Insert into `server`.`user`: ' + err.message);
                       response.send({ok: false});
                     });
                 })
                 .catch(err => {
-                  logining.error('Select from `server`.`form`: ' + err.message);
+                  logging.error('Select from `server`.`form`: ' + err.message);
                   response.send({ok: false});
                 });
             })
             .catch(err => {
-              logining.error('Update `server`.`registration`: ' + err.message);
+              logging.error('Update `server`.`registration`: ' + err.message);
               response.send({ok: false});
             });
         }
       }
     })
     .catch(err => {
-      logining.error('Select from `server`.`registration`: ' + err.message);
+      logging.error('Select from `server`.`registration`: ' + err.message);
       response.send({ok: false});
     });
 });
@@ -237,12 +238,12 @@ app.post("/login", (request, response) => {
                 response.send({ok: true, user: user});
               })
               .catch(err => {
-                logining.error('Insert into `server`.`session`: ' + err.message);
+                logging.error('Insert into `server`.`session`: ' + err.message);
                 response.send({ok: false});
               });
           })
           .catch(err => {
-            logining.error('Select form `server`.`description`: ' + err.message);
+            logging.error('Select form `server`.`description`: ' + err.message);
             response.send({ok: false});
           });
       } else {
@@ -250,7 +251,7 @@ app.post("/login", (request, response) => {
       }
     })
     .catch(err => {
-      logining.error('Select form `server`.`user`: ' + err.message);
+      logging.error('Select form `server`.`user`: ' + err.message);
       response.send({ok: false});
     });
 });
@@ -269,7 +270,7 @@ function sessionValidCheck(sessionCode, callbackPositive, callbackNegative) {
       }
     })
     .catch(err => {
-      logining.error('Select form `server`.`session`: ' + err.message);
+      logging.error('Select form `server`.`session`: ' + err.message);
       callbackNegative();
     });
 }
@@ -298,100 +299,10 @@ app.get("/logout", (request, response) => {
       response.send('');
     })
     .catch(err => {
-      logining.error('Update `server`.`session`: ' + err.message);
+      logging.error('Update `server`.`session`: ' + err.message);
       response.send('');
     });
 });
-
-class TemplateAction {
-  static upload(userId, isTemplateTest, template, callbackPositive, callbackNegative) {
-    let tableName = isTemplateTest ? 'template_test' : 'template_test_task';
-    connection.query("INSERT INTO `server`.`" + tableName + "` SET ?",
-      {user_id: userId, template: compressString(template)})
-      .then(results => {callbackPositive(results);})
-      .catch(err => {
-        logining.error('Insert into `server`.`'+tableName+'`: ' + err.message);
-        callbackNegative();
-      });
-  }
-
-  static download(userId, templateId, isTemplateTest, callbackPositive, callbackNegative) {
-    let tableName = isTemplateTest ? 'template_test' : 'template_test_task';
-    connection.query("SELECT * FROM `server`.`"+tableName+"` WHERE `"+tableName+"`.`id`=? AND `"+tableName+"`.`user_id`=?",
-      [templateId, userId])
-      .then(results => {
-        callbackPositive(results);
-      })
-      .catch((err) => {
-        logining.error('Select from `server`.`'+tableName+'`: ' + err.message);
-        callbackNegative();
-      });
-  }
-
-  static remove(userId, templateId, isTemplateTest, callbackPositive, callbackNegative) {
-    let tableName = isTemplateTest ? 'template_test' : 'template_test_task';
-    connection.query("SELECT * FROM `server`.`"+tableName+"` WHERE `"+tableName+"`.`id`=? AND `"+tableName+"`.`user_id`=?",
-      [templateId, userId])
-      .then(results => {
-        if (results[0].length === 1) {
-          connection.query("DELETE FROM `server`.`"+tableName+"` WHERE `"+tableName+"`.`id`=? AND `"+tableName+"`.`user_id`=?",
-            [templateId, userId])
-            .then(() => {
-              callbackPositive();
-            })
-            .catch((err) => {
-              logining.error('Delete from `server`.`'+tableName+'`: ' + err.message);
-              callbackNegative();
-            });
-        } else {
-          callbackNegative();
-        }
-      })
-      .catch((err) => {
-        logining.error('Select from `server`.`'+tableName+'`: ' + err.message);
-        callbackNegative();
-      });
-  }
-
-  static update(userId, templateId, templateTestTask, isTemplateTest, callbackPositive, callbackNegative) {
-    let tableName = isTemplateTest ? 'template_test' : 'template_test_task';
-    connection.query("SELECT * FROM `server`.`"+tableName+"` WHERE `"+tableName+"`.`id`=? AND `"+tableName+"`.`user_id`=?",
-      [templateId, userId])
-      .then(results => {
-        if (results[0].length === 1) {
-          connection.query("UPDATE `server`.`"+tableName+"` SET `"+tableName+"`.`template`=? WHERE `"+tableName+"`.`id`=? AND `"+tableName+"`.`user_id`=?",
-            [compressString(templateTestTask), templateId, userId])
-            .then(() => {
-              callbackPositive();
-            })
-            .catch((err) => {
-              logining.error('Update `server`.`'+tableName+'`: ' + err.message);
-              callbackNegative();
-            });
-        } else {
-          callbackNegative();
-        }
-      })
-      .catch((err) => {
-        logining.error('Select from `server`.`'+tableName+'`: ' + err.message);
-        callbackNegative();
-      });
-  }
-
-  static viewList(userId, pageId, isTemplateTest, callbackPositive, callbackNegative) {
-    let tableName = isTemplateTest ? 'template_test' : 'template_test_task';
-    let offset = pageId * TEMPLATES_PER_PAGE;
-    connection.query("SELECT * FROM `server`.`" + tableName + "` WHERE `" + tableName + "`.`user_id`=? LIMIT " +
-      TEMPLATES_PER_PAGE + " OFFSET " + offset, [userId])
-      .then(results => {
-        callbackPositive(results);
-      })
-      .catch((err) => {
-        logining.error('Select from `server`.`'+tableName+'`: ' + err.message);
-        callbackNegative();
-      });
-  }
-}
 
 app.post("/upload_ttt", (request, response) => {
   if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('templateTestTask')) {
@@ -399,7 +310,7 @@ app.post("/upload_ttt", (request, response) => {
     return;
   }
   try {
-    translator.checkTTT(JSON.parse(request.body.templateTestTask));
+    generator.checkTemplateTestTask(JSON.parse(request.body.templateTestTask));
   } catch (err) {
     response.send({ok: false});
     return;
@@ -489,7 +400,7 @@ app.post("/update_ttt", (request, response) => {
   }
 
   try {
-    translator.checkTTT(JSON.parse(request.body.templateTestTask));
+    generator.checkTemplateTestTask(JSON.parse(request.body.templateTestTask));
   } catch (err) {
     response.send({ok: false});
     return;
@@ -511,7 +422,7 @@ app.post("/upload_template_test", (request, response) => {
     response.send({ok: false});
     return;
   }
-  if (!translator.checkTemplateTest(JSON.parse(request.body.templateTest))) {
+  if (!generator.checkTemplateTest(JSON.parse(request.body.templateTest))) {
     response.send({ok: false});
     return;
   }
@@ -535,7 +446,7 @@ app.post("/update_template_test", (request, response) => {
     response.send({ok: false});
     return;
   }
-  if (!translator.checkTemplateTest(JSON.parse(request.body.templateTest))) {
+  if (!generator.checkTemplateTest(JSON.parse(request.body.templateTest))) {
     response.send({ok: false});
     return;
   }
@@ -644,7 +555,7 @@ app.use("/generate_gift", (request, response) => {
             }
             fileName += '.gift';
 
-            archive.append(translator.translateTestToGIFT(translator.generateTestFormTemplateTest(template)),
+            archive.append(generator.translateTestToGIFT(generator.generateTestFormTemplateTest(template)),
               {name: fileName});
           }
 
