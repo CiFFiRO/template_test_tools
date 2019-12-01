@@ -14,12 +14,11 @@
   <script type="text/javascript" src="external/codemirror/javascript.js"></script>
   <script type="text/javascript" src="external/codemirror/active-line.js"></script>
   <script type="text/javascript" src="external/codemirror/matchbrackets.js"></script>
-  <script type="text/javascript" src="tools/editor/templateTestTaskInternal.js"></script>
-  <script type="text/javascript" src="tools/editor/templateTestTaskView.js"></script>
   <script type="text/javascript" src="scripts/internal/validator.js"></script>
   <script type="text/javascript" src="scripts/view/navigation.js"></script>
-  <script type="text/javascript" src="scripts/view/templateTestTaskWeb.js"></script>
+  <script type="text/javascript" src="scripts/view/editor_template_test_task.js"></script>
   <script type="text/javascript" src="scripts/common.js"></script>
+  <script type="text/javascript" src="scripts/internal/generator.js"></script>
   <script type="text/javascript">
     $(document).ready(function () {
       window.debugStatus = true;
@@ -68,6 +67,10 @@
     .btn-black:hover{color: #3E4551;}
     [hidden] {
       display: none !important;
+    }
+    .template-status-button-position {
+      top:90%;
+      left:75%;
     }
   </style>
 </head>

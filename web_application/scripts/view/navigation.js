@@ -24,6 +24,8 @@ class NavigationView {
   }
 
   initializeMenu() {
+    this.userMenu();
+    return;
     if (this.isSessionValid()) {
       this.userMenu();
     } else {
@@ -231,7 +233,7 @@ class NavigationView {
       '<button type="button" class="btn btn-default left-buffer-20" id="' + editTemplateTestTasksButtonId + '">Список ШТЗ</button>' +
       '<button type="button" class="btn btn-default left-buffer-20" id="' + editTemplateTestsButtonId + '">Список ШТ</button>' +
       '<button type="button" class="btn btn-default left-buffer-20" id="' + logoutButtonId + '"><span class="glyphicon glyphicon-log-out" aria-hidden="true"></span></button>' +
-      '</div><div id="' + workspaceId + '" class="workspace-position"></div>');
+      '</div><div id="' + workspaceId + '" class="workspace-position container-fluid"></div>');
     let workspace = $('#'+workspaceId);
 
     $('#'+logoutButtonId).on('click', () => {
@@ -360,7 +362,7 @@ class NavigationView {
         });
     }, () => {
       workspace.empty();
-      let editor = new TemplateTestTaskWeb();
+      let editor = new EditorTemplateTestTask();
       editor.initialize(workspace.attr('id'), this.panelId);
     }, callback => {
       LOAD_FILES(templateTestTask => {
