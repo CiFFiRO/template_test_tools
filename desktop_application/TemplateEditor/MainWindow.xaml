@@ -1,0 +1,228 @@
+﻿<Window x:Class="TemplateEditor.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:TemplateEditor"
+        mc:Ignorable="d"
+        Title="Редактор шаблонов" Icon="Icons/app.ico" >
+    <Window.InputBindings>
+        <KeyBinding Modifiers="Ctrl" Key="S" Command="{Binding Save}"></KeyBinding>
+        <KeyBinding Modifiers="Ctrl+Shift" Key="S" Command="{Binding SaveAs}"></KeyBinding>
+        <KeyBinding Modifiers="Ctrl" Key="G" Command="{Binding Generate}"></KeyBinding>
+    </Window.InputBindings>
+    <Window.Resources>
+        <DataTemplate x:Key="DefaultTemplate">
+            <Grid>
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="TaskTemplate">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*"></ColumnDefinition>
+                    <ColumnDefinition Width="1*"></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                
+                <Label Grid.Row="0" Grid.Column="0" Content="Заголовок шаблона"></Label>
+                <TextBox TextWrapping="Wrap" Grid.Row="1" Grid.Column="0" MaxLines="1" Text="{Binding Path=Task.Header, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+
+                <Grid Grid.Row="2"  Grid.Column="0" Grid.ColumnSpan="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition></ColumnDefinition>
+                        <ColumnDefinition></ColumnDefinition>
+                    </Grid.ColumnDefinitions>
+                    <Label Grid.Row="0" Grid.Column="0" Content="Грамматика"></Label>
+                    <TextBox TextWrapping="Wrap" Grid.Row="1" Grid.Column="0" Text="{Binding Path=Task.Grammar, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" VerticalScrollBarVisibility="Visible"></TextBox>
+                    <Label Grid.Row="0" Grid.Column="1" Content="Текст задания"></Label>
+                    <TextBox TextWrapping="Wrap" Grid.Row="1" Grid.Column="1" Text="{Binding Path=Task.TextTask, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" VerticalScrollBarVisibility="Visible"></TextBox>
+                </Grid>
+                
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="GroupTaskTemplate">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*"></ColumnDefinition>
+                    <ColumnDefinition Width="1*"></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                
+                <Label Grid.Row="0" Grid.Column="0" Content="Заголовок шаблона"></Label>
+                <TextBox Grid.Row="1" Grid.Column="0" MaxLines="1" Text="{Binding Path=GroupTask.Header, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+                <Label Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center" Content="Порядок заданий"></Label>
+                <ComboBox Grid.Row="1" Grid.Column="1" Width="200" HorizontalAlignment="Center" ItemsSource="{Binding Path=GroupTask.Types}" SelectedItem="{Binding Path=GroupTask.Type, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsSynchronizedWithCurrentItem="True" >
+                </ComboBox>
+                <Label Grid.Row="2" Grid.Column="0" Content="Шаблоны заданий"></Label>
+                <Grid Grid.Row="3"  Grid.Column="0" Grid.ColumnSpan="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="6*"></ColumnDefinition>
+                        <ColumnDefinition ></ColumnDefinition>
+                    </Grid.ColumnDefinitions>
+                    <ListBox Grid.Column="0" ItemsSource="{Binding Path=TemplateHeaders, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" SelectedIndex="{Binding Path=SelectedTemplateIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VirtualizingPanel.IsVirtualizing="False">
+                    </ListBox>
+                    <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                        <StackPanel.Resources>
+                            <Style TargetType="{x:Type Button}">
+                                <Setter Property="Margin" Value="0,10,0,0"/>
+                            </Style>
+                        </StackPanel.Resources>
+                        <Button Command="{Binding UpTest}" CommandParameter="4" Width="64px" Height="64px">
+                            <Image Source="Icons/up.png"></Image>
+                        </Button>
+                        <Button Command="{Binding DownTest}" CommandParameter="4" Width="64px" Height="64px">
+                            <Image Source="Icons/down.png"></Image>
+                        </Button>
+                        <Button Content="Удалить" Command="{Binding DeleteTest}" CommandParameter="4" Width="75"></Button>
+                        <Button Content="Добавить" Command="{Binding AddTest}" CommandParameter="4" Width="75"></Button>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="TestTaskTemplate">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*"></ColumnDefinition>
+                    <ColumnDefinition Width="1*"></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+
+                <Label Grid.Row="0" Grid.Column="0" Content="Заголовок шаблона"></Label>
+                <TextBox Grid.Row="1" Grid.Column="0" MaxLines="1" Text="{Binding Path=TestTask.Header, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+                <Label Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center" Content="Тип тестового задания"></Label>
+                <ComboBox Grid.Row="1" Grid.Column="1" HorizontalAlignment="Center" Width="200" ItemsSource="{Binding Path=TestTask.Types}" SelectedItem="{Binding Path=TestTask.Type, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsSynchronizedWithCurrentItem="True" >
+                </ComboBox>
+
+                <Grid Grid.Row="2"  Grid.Column="0" Grid.ColumnSpan="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition></ColumnDefinition>
+                        <ColumnDefinition></ColumnDefinition>
+                    </Grid.ColumnDefinitions>
+                    
+                    <Label Grid.Row="0" Grid.Column="0" Content="Грамматика"></Label>
+                    <TextBox Grid.Row="1" Grid.Column="0" TextWrapping="Wrap" Text="{Binding Path=TestTask.Grammar, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" VerticalScrollBarVisibility="Visible"></TextBox>
+                    <Label Grid.Row="0" Grid.Column="1" Content="Текст задания"></Label>
+                    <TextBox Grid.Row="1" Grid.Column="1" TextWrapping="Wrap" Text="{Binding Path=TestTask.TaskText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" VerticalScrollBarVisibility="Visible"></TextBox>
+                    <Label Grid.Row="2" Grid.Column="0" Content="Скрипт обратной связи"></Label>
+                    <TextBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" TextWrapping="Wrap" Text="{Binding Path=TestTask.FeedbackScript, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" VerticalScrollBarVisibility="Visible"></TextBox>
+                </Grid>
+
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="TestTemplate">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*"></ColumnDefinition>
+                    <ColumnDefinition Width="1*"></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+
+                <Label Grid.Row="0" Grid.Column="0" Content="Заголовок шаблона"></Label>
+                <TextBox Grid.Row="1" Grid.Column="0" MaxLines="1" Text="{Binding Path=Test.Header, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+                <Label Grid.Row="0" Grid.Column="1" Content="Порядок тестовых заданий" HorizontalAlignment="Center" ></Label>
+                <ComboBox Grid.Row="1" Grid.Column="1" HorizontalAlignment="Center" Width="200"  ItemsSource="{Binding Path=Test.Types}" SelectedItem="{Binding Path=Test.Type, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsSynchronizedWithCurrentItem="True" >
+                </ComboBox>
+                <Label Grid.Row="2" Grid.Column="0" Content="Шаблоны тестовых заданий"></Label>
+                <Grid Grid.Row="3"  Grid.Column="0" Grid.ColumnSpan="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="6*"></ColumnDefinition>
+                        <ColumnDefinition ></ColumnDefinition>
+                    </Grid.ColumnDefinitions>
+                    <ListBox Grid.Column="0" ItemsSource="{Binding Path=TemplateHeaders, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" SelectedIndex="{Binding Path=SelectedTemplateIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VirtualizingPanel.IsVirtualizing="False">
+                    </ListBox>
+                    <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                        <StackPanel.Resources>
+                            <Style TargetType="{x:Type Button}">
+                                <Setter Property="Margin" Value="0,10,0,0"/>
+                            </Style>
+                        </StackPanel.Resources>
+                        <Button Command="{Binding UpTest}" CommandParameter="3" Width="64px" Height="64px">
+                            <Image Source="Icons/up.png"></Image>
+                        </Button>
+                        <Button Command="{Binding DownTest}" CommandParameter="3" Width="64px" Height="64px">
+                            <Image Source="Icons/down.png"></Image>
+                        </Button>
+                        <Button Content="Удалить" Command="{Binding DeleteTest}" CommandParameter="3" Width="75"></Button>
+                        <Button Content="Добавить" Command="{Binding AddTest}" CommandParameter="3" Width="75"></Button>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </DataTemplate>
+
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"></RowDefinition>
+            <RowDefinition Height="*"></RowDefinition>
+        </Grid.RowDefinitions>
+
+        <Menu Grid.Row="0" Height="25" VerticalAlignment="Top" >
+            <MenuItem Header="Файл">
+                <MenuItem Header="Сохранить" Command="{Binding Save}" InputGestureText="Ctrl+S"></MenuItem>
+                <MenuItem Header="Сохранить как ..." Command="{Binding SaveAs}" InputGestureText="Ctrl+Shift+S"></MenuItem>
+                <Separator />
+                <MenuItem Header="Выход" Command="{Binding Exit}"></MenuItem>
+            </MenuItem>
+            <MenuItem Header="Действия">
+                <MenuItem Header="Создать шаблон...">
+                    <MenuItem Header="тестового задания" Command="{Binding CreateTemplateTestTaskCommand}"></MenuItem>
+                    <MenuItem Header="теста" Command="{Binding CreateTemplateTestCommand}"></MenuItem>
+                    <MenuItem Header="задания" Command="{Binding CreateTemplateTaskCommand}" ></MenuItem>
+                    <MenuItem Header="группы заданий" Command="{Binding CreateTemplateGroupTaskCommand}" ></MenuItem>
+                </MenuItem>
+                <MenuItem Header="Открыть шаблон...">
+                    <MenuItem Header="тестового задания" Command="{Binding OpenTemplateTestTaskCommand}" ></MenuItem>
+                    <MenuItem Header="теста" Command="{Binding OpenTemplateTestCommand}" ></MenuItem>
+                    <MenuItem Header="задания" Command="{Binding OpenTemplateTaskCommand}" ></MenuItem>
+                    <MenuItem Header="группы заданий" Command="{Binding OpenTemplateGroupTaskCommand}" ></MenuItem>
+                </MenuItem>
+                <Separator />
+                <MenuItem Header="Сгенерировать контент из шаблона" Command="{Binding Generate}" InputGestureText="Ctrl+G"></MenuItem>
+            </MenuItem>
+            <MenuItem Header="Помощь">
+                <MenuItem Header="Справка" Command="{Binding OpenHelp}"></MenuItem>
+                <MenuItem Header="О программе" Command="{Binding Info}"></MenuItem>
+            </MenuItem>
+        </Menu>
+
+
+        <ContentControl Grid.Row="1" x:Name="Workspace" Content="{Binding BindingDataForms}" ContentTemplateSelector="{Binding EditorDataTemplateSelector}">
+        </ContentControl>
+    </Grid>
+</Window>
+    
