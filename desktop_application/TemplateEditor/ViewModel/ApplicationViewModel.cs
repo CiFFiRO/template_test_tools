@@ -287,10 +287,10 @@ namespace TemplateEditor.ViewModel
                     {
                         JsonFileDialog((fileName) =>
                         {
-                            BindingDataForms.TestTask = GeneratorWrap.GetInstance().TemplateTestTaskToForm(File.ReadAllText(fileName));
                             _lastFileNameToSave = fileName;
                             _editorSelector.TypeTemplate = EditorSelector.TemplateType.TestTask;
                             _currentTemplateType = EditorSelector.TemplateType.TestTask;
+                            BindingDataForms.TestTask = GeneratorWrap.GetInstance().TemplateTestTaskToForm(GetTemplateFromLoadData(File.ReadAllText(fileName)));
                             _updateContentControl();
                         }, (error) => { return "Ошибка: файл не является шаблоном тестового задания или содержит ошибку"; }, false, false);
                     }));
@@ -306,10 +306,10 @@ namespace TemplateEditor.ViewModel
                     {
                         JsonFileDialog((fileName) =>
                         {
-                            BindingDataForms.Task = GeneratorWrap.GetInstance().TemplateTaskToForm(File.ReadAllText(fileName));
                             _lastFileNameToSave = fileName;
                             _editorSelector.TypeTemplate = EditorSelector.TemplateType.Task;
                             _currentTemplateType = EditorSelector.TemplateType.Task;
+                            BindingDataForms.Task = GeneratorWrap.GetInstance().TemplateTaskToForm(GetTemplateFromLoadData(File.ReadAllText(fileName)));
                             _updateContentControl();
                         }, (error) => { return "Ошибка: файл не является шаблоном задания или содержит ошибку"; }, false, false);
                     }));
@@ -325,10 +325,10 @@ namespace TemplateEditor.ViewModel
                     {
                         JsonFileDialog((fileName) =>
                         {
-                            BindingDataForms.Test = GeneratorWrap.GetInstance().TemplateTestToForm(File.ReadAllText(fileName));
                             _lastFileNameToSave = fileName;
                             _editorSelector.TypeTemplate = EditorSelector.TemplateType.Test;
                             _currentTemplateType = EditorSelector.TemplateType.Test;
+                            BindingDataForms.Test = GeneratorWrap.GetInstance().TemplateTestToForm(GetTemplateFromLoadData(File.ReadAllText(fileName)));
                             BindingDataForms.TemplateHeaders = new ObservableCollection<string>();
                             for (int i = 0; i < BindingDataForms.Test.TemplateTestTasks.Count; ++i)
                             {
@@ -354,10 +354,10 @@ namespace TemplateEditor.ViewModel
                     {
                         JsonFileDialog((fileName) =>
                         {
-                            BindingDataForms.GroupTask = GeneratorWrap.GetInstance().TemplateGroupTaskToForm(File.ReadAllText(fileName));
                             _lastFileNameToSave = fileName;
                             _editorSelector.TypeTemplate = EditorSelector.TemplateType.GroupTask;
                             _currentTemplateType = EditorSelector.TemplateType.GroupTask;
+                            BindingDataForms.GroupTask = GeneratorWrap.GetInstance().TemplateGroupTaskToForm(GetTemplateFromLoadData(File.ReadAllText(fileName)));
                             BindingDataForms.TemplateHeaders = new ObservableCollection<string>();
                             for (int i = 0; i < BindingDataForms.GroupTask.TemplateTasks.Count; ++i)
                             {
@@ -403,7 +403,7 @@ namespace TemplateEditor.ViewModel
                             string template = GetTemplateFromForm();
                             CheckForm();
                             _lastFileNameToSave = fileName;
-                            File.WriteAllText(_lastFileNameToSave, template);
+                            File.WriteAllText(_lastFileNameToSave, GetSaveDataFromTemplate(template));
                         }, (error) => { return GetTanslateErrorFromException(error); }, false, true);
                     }));
             }
@@ -429,7 +429,7 @@ namespace TemplateEditor.ViewModel
                         try {
                             string template = GetTemplateFromForm();
                             CheckForm();
-                            File.WriteAllText(_lastFileNameToSave, template);
+                            File.WriteAllText(_lastFileNameToSave, GetSaveDataFromTemplate(template));
                         } catch (Exception error)
                         {
                             System.Windows.MessageBox.Show(GetTanslateErrorFromException(error));
@@ -623,13 +623,75 @@ namespace TemplateEditor.ViewModel
             {
                 GeneratorWrap.GetInstance().CheckTemplateTask(GeneratorWrap.GetInstance().TaskFormToTemplate(BindingDataForms.Task));
             }
-            else if (_currentTemplateType == EditorSelector.TemplateType.Test)
+            else if (_currentTemplateType == EditorSelector.TemplateType.GroupTask)
             {
                 if (!GeneratorWrap.GetInstance().CheckTemplateGroupTask(GeneratorWrap.GetInstance().GroupTaskFormToTemplate(BindingDataForms.GroupTask)))
                 {
                     throw new Exception("Шаблон теста содержит ошибки");
                 }
             }
+        }
+
+        private string GetSaveDataFromTemplate(string templateJson)
+        {
+            if (_currentTemplateType == EditorSelector.TemplateType.TestTask)
+            {
+                return templateJson;
+            }
+            if (_currentTemplateType == EditorSelector.TemplateType.Test)
+            {
+                dynamic template = Newtonsoft.Json.JsonConvert.DeserializeObject<ExpandoObject>(templateJson);
+                for (int i = 0; i < template.arrayTemplateTestTask.Count; ++i)
+                {
+                    template.arrayTemplateTestTask[i] = Newtonsoft.Json.JsonConvert.DeserializeObject<ExpandoObject>(template.arrayTemplateTestTask[i]);
+                }
+                return Newtonsoft.Json.JsonConvert.SerializeObject(template);
+            }
+            if (_currentTemplateType == EditorSelector.TemplateType.Task)
+            {
+                return templateJson;
+            }
+            if (_currentTemplateType == EditorSelector.TemplateType.Test)
+            {
+                dynamic template = Newtonsoft.Json.JsonConvert.DeserializeObject<ExpandoObject>(templateJson);
+                for (int i = 0; i < template.arrayTemplateTestTask.Count; ++i)
+                {
+                    template.arrayTemplateTask[i] = Newtonsoft.Json.JsonConvert.DeserializeObject<ExpandoObject>(template.arrayTemplateTask[i]);
+                }
+                return Newtonsoft.Json.JsonConvert.SerializeObject(template);
+            }
+            return "";
+        }
+
+        private string GetTemplateFromLoadData(string data)
+        {
+            if (_currentTemplateType == EditorSelector.TemplateType.TestTask)
+            {
+                return data;
+            }
+            if (_currentTemplateType == EditorSelector.TemplateType.Test)
+            {
+                dynamic template = Newtonsoft.Json.JsonConvert.DeserializeObject<ExpandoObject>(data);
+                for (int i = 0; i < template.arrayTemplateTestTask.Count; ++i)
+                {
+                    template.arrayTemplateTestTask[i] = Newtonsoft.Json.JsonConvert.SerializeObject(template.arrayTemplateTestTask[i]);
+                }
+                return Newtonsoft.Json.JsonConvert.SerializeObject(template);
+            }
+            if (_currentTemplateType == EditorSelector.TemplateType.Task)
+            {
+                return data;
+            }
+            if (_currentTemplateType == EditorSelector.TemplateType.Test)
+            {
+                dynamic template = Newtonsoft.Json.JsonConvert.DeserializeObject<ExpandoObject>(data);
+                for (int i = 0; i < template.arrayTemplateTestTask.Count; ++i)
+                {
+                    template.arrayTemplateTask[i] = Newtonsoft.Json.JsonConvert.SerializeObject(template.arrayTemplateTask[i]);
+                }
+                return Newtonsoft.Json.JsonConvert.SerializeObject(template);
+            }
+            return "";
         }
     }
 }
