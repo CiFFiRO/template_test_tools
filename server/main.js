@@ -291,8 +291,15 @@ let urls = [[
 ], [
   "/view_list_template_test", "/upload_template_test", "/update_template_test", "/download_template_test",
   "/remove_template_test", "/generate_test"
+], [
+  "/view_list_template_task", "/upload_template_task", "/update_template_task", "/download_template_task",
+  "/remove_template_task", "/generate_task"
+], [
+  "/view_list_template_group_task", "/upload_template_group_task", "/update_template_group_task",
+  "/download_template_group_task", "/remove_template_group_task", "/generate_group_task"
 ]];
-let typeByIndex = [templateAction.templateTypes.testTask, templateAction.templateTypes.test];
+let typeByIndex = [templateAction.templateTypes.testTask, templateAction.templateTypes.test,
+  templateAction.templateTypes.task, templateAction.templateTypes.groupTask];
 let checkTemplateByIndex = [
   (template) => {
     try {
@@ -303,6 +310,15 @@ let checkTemplateByIndex = [
     return true;
   }, (template) => {
     return generator.checkTemplateTest(template);
+  }, (template) => {
+    try {
+      generator.checkTemplateTask(template);
+    } catch (err) {
+      return false;
+    }
+    return true;
+  }, (template) => {
+    return generator.checkTemplateGroupTask(template);
   }
 ];
 let generateContentByIndex = [
@@ -310,9 +326,13 @@ let generateContentByIndex = [
     return generator.translateTestTaskToGIFT(generator.generateTestTaskFromTemplateTestTask(template));
   }, (template) => {
     return generator.translateTestToGIFT(generator.generateTestFormTemplateTest(template));
+  }, (template) => {
+    return generator.translateTaskToTXT(generator.generateTaskFromTemplateTask(template));
+  }, (template) => {
+    return generator.translateGroupTaskToTXT(generator.generateGroupTaskFromTemplateGroupTask(template));
   }
 ];
-let contentExtensionByIndex = ['gift', 'gift'];
+let contentExtensionByIndex = ['gift', 'gift', 'txt', 'txt'];
 
 for (let indexTypeTemplate=0;indexTypeTemplate<urls.length;++indexTypeTemplate) {
   app.post(urls[indexTypeTemplate][0], (request, response) => {
