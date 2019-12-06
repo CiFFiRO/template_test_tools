@@ -4,22 +4,20 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const Validator = require('./validator');
 const mysql = require("mysql2");
-const CryptoJS = require('crypto-js');
 const nodemailer = require('nodemailer');
 const generator = require('../generator/generator');
-const zlib = require('zlib');
 const Log = require('./log');
 const process = require('process');
 const archiver = require('archiver');
 const TemplateAction = require('./template_action');
-
+const Common = require('./common');
 
 const SERVER_LISTEN_PORT = 4001;
 const REGISTRATION_CONFIRM_TIME_LIMIT = 24*60*60;
 const SESSION_TIME_LIMIT = 24*60*60;
 const LOG_FILE_NAME = path.join(__dirname, "./log.txt");
 const TEMPLATES_PER_PAGE = 10;
-const MAX_GIFT_TEST_GENERATION = 100;
+const MAX_GENERATION_NUMBER = 50;
 const MAIL_HOST = "smtp.mail.ru";
 const MAIL_PORT = 465;
 const MAIL_SECURE = true;
@@ -29,23 +27,6 @@ const MYSQL_HOST = "localhost";
 const MYSQL_USER = "main";
 const MYSQL_DATABASE_NAME = "server";
 const MYSQL_USER_PASS = "mainpassword";
-
-function getHash(string) {
-  return CryptoJS.SHA256(string).toString(CryptoJS.enc.Hex);
-}
-
-function timeNow() {
-  return Math.floor(Date.now()/1000);
-}
-
-function compressString(data) {
-  let input = Buffer.from(data, 'utf8');
-  return zlib.deflateSync(input);
-}
-
-function uncompressString(data) {
-  return zlib.inflateSync(Buffer.from(data, 'base64')).toString();
-}
 
 let logging = new Log(LOG_FILE_NAME);
 
@@ -58,7 +39,6 @@ for (let i=0;i<signals.length;++i) {
     process.exit(0);
   });
 }
-
 
 const transporter = nodemailer.createTransport({
   host: MAIL_HOST,
@@ -93,6 +73,7 @@ connection.connect()
   process.exit(1);
 });
 
+let templateAction = new TemplateAction(connection, TEMPLATES_PER_PAGE, logging);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -111,12 +92,12 @@ app.post("/registration", (request, response) => {
     .then(results => {
       if (results[0].length === 0) {
         connection.query("INSERT INTO `server`.`form` (`e-mail`, `nickname`, `password_hash`, `first_name`, `second_name`) VALUES (?, ?, ?, ?, ?)",
-          [request.body.email, request.body.nickname, getHash(request.body.password),
+          [request.body.email, request.body.nickname, Common.getHash(request.body.password),
             request.body.firstName, request.body.secondName])
           .then(results => {
             let insertId = results[0].insertId;
-            let time = timeNow();
-            let confirmCode = getHash(request.body.email+request.body.nickname+time);
+            let time = Common.timeNow();
+            let confirmCode = Common.getHash(request.body.email+request.body.nickname+time);
             connection.query('INSERT INTO `server`.`registration` (`time`, `confirm_hash`, `complete`, `form_id`) VALUES (?, ?, ?, ?)',
               [time, confirmCode, 0, insertId])
               .then(() => {
@@ -168,7 +149,7 @@ app.post("/registration_confirm", (request, response) => {
         response.send({ok: false});
       } else {
         let data = results[0][0];
-        if (data.time + REGISTRATION_CONFIRM_TIME_LIMIT < timeNow() || data.complete === 1) {
+        if (data.time + REGISTRATION_CONFIRM_TIME_LIMIT < Common.timeNow() || data.complete === 1) {
           response.send({ok: false});
         } else {
           connection.query("UPDATE `server`.`registration` SET `registration`.`complete`=1 WHERE `registration`.`confirm_hash` = ?",
@@ -221,10 +202,10 @@ app.post("/login", (request, response) => {
   }
 
   connection.query("SELECT * FROM `server`.`user` WHERE `user`.`password_hash` = ? AND `user`.`nickname` = ?",
-    [getHash(request.body.password), request.body.nickname])
+    [Common.getHash(request.body.password), request.body.nickname])
     .then(results => {
       if (results[0].length === 1) {
-        let sessionCode = getHash(request.headers["user-agent"] + request.ip + request.body.nickname + timeNow());
+        let sessionCode = Common.getHash(request.headers["user-agent"] + request.ip + request.body.nickname + Common.timeNow());
         let user = {email: results[0][0]['e-mail'], nickname: results[0][0].nickname};
         let userId = results[0][0].id;
         connection.query("SELECT * FROM `server`.`description` WHERE `description`.`user_id` = ?", [userId])
@@ -232,7 +213,7 @@ app.post("/login", (request, response) => {
             user.firstName = results[0][0].first_name;
             user.secondName = results[0][0].second_name;
             connection.query("INSERT INTO `server`.`session` (`user_id`, `hash`, `time`) VALUES (?, ?, ?)",
-              [userId, sessionCode, timeNow()])
+              [userId, sessionCode, Common.timeNow()])
               .then(() => {
                 response.cookie('sessionCode', sessionCode, {maxAge: 1000 * SESSION_TIME_LIMIT});
                 response.send({ok: true, user: user});
@@ -260,7 +241,7 @@ function sessionValidCheck(sessionCode, callbackPositive, callbackNegative) {
   connection.query("SELECT * FROM `server`.`session` WHERE `session`.`hash` = ?", [sessionCode])
     .then(results => {
       if (results[0].length > 0) {
-        if (results[0][0].time + SESSION_TIME_LIMIT > timeNow()) {
+        if (results[0][0].time + SESSION_TIME_LIMIT > Common.timeNow()) {
           callbackPositive(results[0][0].user_id);
         } else {
           callbackNegative();
@@ -304,13 +285,13 @@ app.get("/logout", (request, response) => {
     });
 });
 
-app.post("/upload_ttt", (request, response) => {
-  if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('templateTestTask')) {
+app.post("/upload_template_test_task", (request, response) => {
+  if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('template')) {
     response.send({ok: false});
     return;
   }
   try {
-    generator.checkTemplateTestTask(JSON.parse(request.body.templateTestTask));
+    generator.checkTemplateTestTask(JSON.parse(request.body.template));
   } catch (err) {
     response.send({ok: false});
     return;
@@ -318,7 +299,7 @@ app.post("/upload_ttt", (request, response) => {
 
   sessionValidCheck(request.cookies.sessionCode,
     userId => {
-      TemplateAction.upload(userId, false, request.body.templateTestTask,
+      templateAction.upload(userId, templateAction.templateTypes.testTask, request.body.template,
         results => {
           response.send({ok: true, templateId: results[0].insertId});
         }, () => {
@@ -328,7 +309,7 @@ app.post("/upload_ttt", (request, response) => {
     () => {response.send({ok: false});});
 });
 
-app.post("/view_list_ttt", (request, response) => {
+app.post("/view_list_template_test_task", (request, response) => {
   if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('pageId')
     || isNaN(+request.body.pageId) || request.body.pageId < 0) {
     response.send({ok: false});
@@ -337,10 +318,10 @@ app.post("/view_list_ttt", (request, response) => {
 
   sessionValidCheck(request.cookies.sessionCode,
     userId => {
-      TemplateAction.viewList(userId, request.body.pageId, false, results => {
+      templateAction.viewList(userId, request.body.pageId, templateAction.templateTypes.testTask, results => {
         let list = [];
         for (let i=0;i<results[0].length;++i) {
-          let ttt = JSON.parse(uncompressString(results[0][i].template));
+          let ttt = JSON.parse(Common.uncompressString(results[0][i].template));
           list.push({title: ttt.title, id: results[0][i].id});
         }
         response.send({ok: true, list: list});
@@ -351,7 +332,7 @@ app.post("/view_list_ttt", (request, response) => {
     () => {response.send({ok: false});});
 });
 
-app.post("/download_ttt", (request, response) => {
+app.post("/download_template_test_task", (request, response) => {
   if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('templateId')
     || isNaN(+request.body.templateId) || request.body.templateId < 0) {
     response.send({ok: false});
@@ -360,9 +341,9 @@ app.post("/download_ttt", (request, response) => {
 
   sessionValidCheck(request.cookies.sessionCode,
     userId => {
-      TemplateAction.download(userId, request.body.templateId, false, results => {
+      templateAction.download(userId, request.body.templateId, templateAction.templateTypes.testTask, results => {
         if (results[0].length === 1) {
-          response.send({ok: true, templateTestTask: JSON.parse(uncompressString(results[0][0].template))});
+          response.send({ok: true, template: JSON.parse(Common.uncompressString(results[0][0].template))});
         } else {
           response.send({ok: false});
         }
@@ -373,7 +354,7 @@ app.post("/download_ttt", (request, response) => {
     () => {response.send({ok: false});});
 });
 
-app.post("/remove_ttt", (request, response) => {
+app.post("/remove_template_test_task", (request, response) => {
   if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('templateId')
     || isNaN(+request.body.templateId) || request.body.templateId < 0) {
     response.send({ok: false});
@@ -382,7 +363,7 @@ app.post("/remove_ttt", (request, response) => {
 
   sessionValidCheck(request.cookies.sessionCode,
     userId => {
-      TemplateAction.remove(userId, request.body.templateId, false, () => {
+      templateAction.remove(userId, request.body.templateId, templateAction.templateTypes.testTask, () => {
         response.send({ok: true});
       }, () => {
         response.send({ok: false});
@@ -391,16 +372,16 @@ app.post("/remove_ttt", (request, response) => {
     () => {response.send({ok: false});});
 });
 
-app.post("/update_ttt", (request, response) => {
+app.post("/update_template_test_task", (request, response) => {
   if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('templateId')
     || isNaN(+request.body.templateId) || request.body.templateId < 0
-    || !request.body.hasOwnProperty('templateTestTask')) {
+    || !request.body.hasOwnProperty('template')) {
     response.send({ok: false});
     return;
   }
 
   try {
-    generator.checkTemplateTestTask(JSON.parse(request.body.templateTestTask));
+    generator.checkTemplateTestTask(JSON.parse(request.body.template));
   } catch (err) {
     response.send({ok: false});
     return;
@@ -408,7 +389,7 @@ app.post("/update_ttt", (request, response) => {
 
   sessionValidCheck(request.cookies.sessionCode,
     userId => {
-      TemplateAction.update(userId, request.body.templateId, request.body.templateTestTask, false, () => {
+      templateAction.update(userId, request.body.templateId, request.body.template, templateAction.templateTypes.testTask, () => {
         response.send({ok: true});
       }, () => {
         response.send({ok: false});
@@ -417,19 +398,48 @@ app.post("/update_ttt", (request, response) => {
     () => {response.send({ok: false});});
 });
 
-app.post("/upload_template_test", (request, response) => {
-  if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('templateTest')) {
+app.use("/generate_test_task", (request, response) => {
+  if (request.cookies.sessionCode === undefined || !request.query.hasOwnProperty('templateId') ||
+    !request.query.hasOwnProperty('number') || isNaN(+request.query.number) || +request.query.number <= 0
+    || +request.query.number > MAX_GENERATION_NUMBER || isNaN(+request.query.templateId) || +request.query.templateId < 0) {
     response.send({ok: false});
     return;
   }
-  if (!generator.checkTemplateTest(JSON.parse(request.body.templateTest))) {
+
+  let number = +request.query.number;
+  let templateId = +request.query.templateId;
+
+  sessionValidCheck(request.cookies.sessionCode,
+    userId => {
+      templateAction.generate(userId, templateId, templateAction.templateTypes.testTask, number,
+        'gift', (template) => {
+          return generator.translateTestTaskToGIFT(generator.generateTestTaskFromTemplateTestTask(template));
+        }, (content) => {
+          const archive = archiver('zip');
+          response.attachment('content.zip');
+          archive.pipe(response);
+          for (let i = 0; i < content.length; ++i) {
+            archive.append(content[i][1],{name: content[i][0]});
+          }
+          archive.finalize();
+        }, () => {response.send('Упс, что-то пошло не так...');});
+    },
+    () => {response.send('Упс, что-то пошло не так...');});
+});
+
+app.post("/upload_template_test", (request, response) => {
+  if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('template')) {
+    response.send({ok: false});
+    return;
+  }
+  if (!generator.checkTemplateTest(JSON.parse(request.body.template))) {
     response.send({ok: false});
     return;
   }
 
   sessionValidCheck(request.cookies.sessionCode,
     userId => {
-      TemplateAction.upload(userId, true, request.body.templateTest,
+      templateAction.upload(userId, templateAction.templateTypes.test, request.body.template,
         results => {
           response.send({ok: true, templateId: results[0].insertId});
         }, () => {
@@ -442,18 +452,18 @@ app.post("/upload_template_test", (request, response) => {
 app.post("/update_template_test", (request, response) => {
   if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('templateId')
     || isNaN(+request.body.templateId) || request.body.templateId < 0
-    || !request.body.hasOwnProperty('templateTest')) {
+    || !request.body.hasOwnProperty('template')) {
     response.send({ok: false});
     return;
   }
-  if (!generator.checkTemplateTest(JSON.parse(request.body.templateTest))) {
+  if (!generator.checkTemplateTest(JSON.parse(request.body.template))) {
     response.send({ok: false});
     return;
   }
 
   sessionValidCheck(request.cookies.sessionCode,
     userId => {
-      TemplateAction.update(userId, request.body.templateId, request.body.templateTest, true, () => {
+      templateAction.update(userId, request.body.templateId, request.body.template, templateAction.templateTypes.test, () => {
         response.send({ok: true});
       }, () => {
         response.send({ok: false});
@@ -471,9 +481,9 @@ app.post("/download_template_test", (request, response) => {
 
   sessionValidCheck(request.cookies.sessionCode,
     userId => {
-      TemplateAction.download(userId, request.body.templateId, true, results => {
+      templateAction.download(userId, request.body.templateId, templateAction.templateTypes.test, results => {
         if (results[0].length === 1) {
-          response.send({ok: true, templateTest: JSON.parse(uncompressString(results[0][0].template))});
+          response.send({ok: true, template: JSON.parse(Common.uncompressString(results[0][0].template))});
         } else {
           response.send({ok: false});
         }
@@ -493,10 +503,10 @@ app.post("/view_list_template_test", (request, response) => {
 
   sessionValidCheck(request.cookies.sessionCode,
     userId => {
-      TemplateAction.viewList(userId, request.body.pageId, true, results => {
+      templateAction.viewList(userId, request.body.pageId, templateAction.templateTypes.test, results => {
         let list = [];
         for (let i=0;i<results[0].length;++i) {
-          let ttt = JSON.parse(uncompressString(results[0][i].template));
+          let ttt = JSON.parse(Common.uncompressString(results[0][i].template));
           list.push({title: ttt.title, id: results[0][i].id});
         }
         response.send({ok: true, list: list});
@@ -516,7 +526,7 @@ app.post("/remove_template_test", (request, response) => {
 
   sessionValidCheck(request.cookies.sessionCode,
     userId => {
-      TemplateAction.remove(userId, request.body.templateId, true, () => {
+      templateAction.remove(userId, request.body.templateId, templateAction.templateTypes.test, () => {
         response.send({ok: true});
       }, () => {
         response.send({ok: false});
@@ -525,47 +535,31 @@ app.post("/remove_template_test", (request, response) => {
     () => {response.send({ok: false});});
 });
 
-app.use("/generate_gift", (request, response) => {
+app.use("/generate_test", (request, response) => {
   if (request.cookies.sessionCode === undefined || !request.query.hasOwnProperty('templateId') ||
-    !request.query.hasOwnProperty('numberTest') || isNaN(+request.query.numberTest) || +request.query.numberTest <= 0
-    || +request.query.numberTest > MAX_GIFT_TEST_GENERATION || isNaN(+request.query.templateId) || +request.query.templateId < 0) {
-    console.log('wtf1');
+    !request.query.hasOwnProperty('number') || isNaN(+request.query.number) || +request.query.number <= 0
+    || +request.query.number > MAX_GENERATION_NUMBER || isNaN(+request.query.templateId) || +request.query.templateId < 0) {
     response.send({ok: false});
     return;
   }
 
-  let numberTest = +request.query.numberTest;
+  let number = +request.query.number;
   let templateId = +request.query.templateId;
 
   sessionValidCheck(request.cookies.sessionCode,
     userId => {
-      TemplateAction.download(userId, templateId, true, results => {
-        if (results[0].length === 1) {
-          let template = JSON.parse(uncompressString(results[0][0].template));
+      templateAction.generate(userId, templateId, templateAction.templateTypes.test, number,
+        'gift', (template) => {
+        return generator.translateTestToGIFT(generator.generateTestFormTemplateTest(template));
+      }, content => {
           const archive = archiver('zip');
-          response.attachment('testsGIFT.zip');
+          response.attachment('content.zip');
           archive.pipe(response);
-
-          for (let i=0;i<numberTest;++i) {
-            let fileName = 'pointed_test_';
-            if (i<10) {
-              fileName += '0' + i;
-            } else {
-              fileName += i;
-            }
-            fileName += '.gift';
-
-            archive.append(generator.translateTestToGIFT(generator.generateTestFormTemplateTest(template)),
-              {name: fileName});
+          for (let i = 0; i < content.length; ++i) {
+            archive.append(content[i][1],{name: content[i][0]});
           }
-
           archive.finalize();
-        } else {
-          response.send('Упс, что-то пошло не так...');
-        }
-      }, () => {
-        response.send('Упс, что-то пошло не так...');
-      });
+      }, () => {response.send('Упс, что-то пошло не так...');});
     },
     () => {response.send('Упс, что-то пошло не так...');});
 });
