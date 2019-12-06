@@ -224,6 +224,8 @@ class NavigationView {
     let viewDocumentationId = 'viewDocumentationId';
     let editTemplateTestTasksButtonId = 'editTemplateTestTasksButtonId';
     let editTemplateTestsButtonId = 'editTemplateTestsButtonId';
+    let editTemplateTasksButtonId = 'editTemplateTasksButtonId';
+    let editTemplateGroupTasksButtonId = 'editTemplateGroupTasksButtonId';
     let logoutButtonId = 'logoutButtonId';
     let workspaceId = 'workspaceId';
     this.panel.append(
@@ -231,6 +233,8 @@ class NavigationView {
       '<button type="button" class="btn btn-default" id="' + viewDocumentationId + '">Документация</button>' +
       '<button type="button" class="btn btn-default left-buffer-20" id="' + editTemplateTestTasksButtonId + '">Список ШТЗ</button>' +
       '<button type="button" class="btn btn-default left-buffer-20" id="' + editTemplateTestsButtonId + '">Список ШТ</button>' +
+      '<button type="button" class="btn btn-default left-buffer-20" id="' + editTemplateTasksButtonId + '">Список ШЗ</button>' +
+      '<button type="button" class="btn btn-default left-buffer-20" id="' + editTemplateGroupTasksButtonId + '">Список ШГЗ</button>' +
       '<button type="button" class="btn btn-default left-buffer-20" id="' + logoutButtonId + '"><span class="glyphicon glyphicon-log-out" aria-hidden="true"></span></button>' +
       '</div><div id="' + workspaceId + '" class="workspace-position container-fluid"></div>');
     let workspace = $('#'+workspaceId);
@@ -249,6 +253,14 @@ class NavigationView {
     $('#'+editTemplateTestsButtonId).on('click', () => {
       workspace.empty();
       this.actionsTemplateTests(workspace);
+    });
+    $('#'+editTemplateTasksButtonId).on('click', () => {
+      workspace.empty();
+      this.actionsTemplateTasks(workspace);
+    });
+    $('#'+editTemplateGroupTasksButtonId).on('click', () => {
+      workspace.empty();
+      this.actionsTemplateGroupTasks(workspace);
     });
   }
 
@@ -438,6 +450,49 @@ class NavigationView {
         .fail(() => {SERVER_DOWN_MESSAGE(this.panelId);});
     },'view_list_template_test',  'upload_template_test',
       'download_template_test', 'remove_template_test', 'generate_test');
+  }
+
+  actionsTemplateTasks(workspace) {
+    this.actions(workspace, () => {
+        workspace.empty();
+        let editor = new EditorTemplateTask();
+        editor.initialize(workspace.attr('id'), this.panelId);
+      },data => {
+        $.post('/download_template_task', data)
+          .done(answer => {
+            if (answer.ok) {
+              workspace.empty();
+              let editor = new EditorTemplateTask();
+              editor.initialize(workspace.attr('id'), this.panelId);
+              editor.load(answer.template, data.templateId);
+            } else {
+              OOOPS_MESSAGE(this.panelId);
+            }
+          })
+          .fail(() => {SERVER_DOWN_MESSAGE(this.panelId);});
+      },'view_list_template_task',  'upload_template_task',
+      'download_template_task', 'remove_template_task', 'generate_task');
+  }
+
+  actionsTemplateGroupTasks(workspace) {
+    this.actions(workspace, () => {
+        workspace.empty();
+        let editor = new EditorTemplateGroupTask();
+        editor.initialize(workspace.attr('id'), this.panelId);
+      },data => {
+        $.post('/download_template_group_task', data)
+          .done(answer => {
+            if (answer.ok) {
+              workspace.empty();
+              let editor = new EditorTemplateGroupTask();
+              editor.initialize(workspace.attr('id'), this.panelId, answer.template, data.templateId);
+            } else {
+              OOOPS_MESSAGE(this.panelId);
+            }
+          })
+          .fail(() => {SERVER_DOWN_MESSAGE(this.panelId);});
+      },'view_list_template_group_task',  'upload_template_group_task',
+      'download_template_group_task', 'remove_template_group_task', 'generate_group_task');
   }
 
 }
