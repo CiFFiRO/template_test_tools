@@ -285,283 +285,196 @@ app.get("/logout", (request, response) => {
     });
 });
 
-app.post("/upload_template_test_task", (request, response) => {
-  if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('template')) {
-    response.send({ok: false});
-    return;
+let urls = [[
+  "/view_list_template_test_task", "/upload_template_test_task", "/update_template_test_task",
+  "/download_template_test_task", "/remove_template_test_task", "/generate_test_task"
+], [
+  "/view_list_template_test", "/upload_template_test", "/update_template_test", "/download_template_test",
+  "/remove_template_test", "/generate_test"
+]];
+let typeByIndex = [templateAction.templateTypes.testTask, templateAction.templateTypes.test];
+let checkTemplateByIndex = [
+  (template) => {
+    try {
+      generator.checkTemplateTestTask(template);
+    } catch (err) {
+      return false;
+    }
+    return true;
+  }, (template) => {
+    return generator.checkTemplateTest(template);
   }
-  try {
-    generator.checkTemplateTestTask(JSON.parse(request.body.template));
-  } catch (err) {
-    response.send({ok: false});
-    return;
+];
+let generateContentByIndex = [
+  (template) => {
+    return generator.translateTestTaskToGIFT(generator.generateTestTaskFromTemplateTestTask(template));
+  }, (template) => {
+    return generator.translateTestToGIFT(generator.generateTestFormTemplateTest(template));
   }
+];
+let contentExtensionByIndex = ['gift', 'gift'];
 
-  sessionValidCheck(request.cookies.sessionCode,
-    userId => {
-      templateAction.upload(userId, templateAction.templateTypes.testTask, request.body.template,
-        results => {
-          response.send({ok: true, templateId: results[0].insertId});
+for (let indexTypeTemplate=0;indexTypeTemplate<urls.length;++indexTypeTemplate) {
+  app.post(urls[indexTypeTemplate][0], (request, response) => {
+    if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('pageId')
+      || isNaN(+request.body.pageId) || request.body.pageId < 0) {
+      response.send({ok: false});
+      return;
+    }
+
+    sessionValidCheck(request.cookies.sessionCode,
+      userId => {
+        templateAction.viewList(userId, request.body.pageId, typeByIndex[indexTypeTemplate], results => {
+          let list = [];
+          for (let i = 0; i < results[0].length; ++i) {
+            let template = JSON.parse(Common.uncompressString(results[0][i].template));
+            list.push({title: template.title, id: results[0][i].id});
+          }
+          response.send({ok: true, list: list});
         }, () => {
           response.send({ok: false});
         });
-    },
-    () => {response.send({ok: false});});
-});
-
-app.post("/view_list_template_test_task", (request, response) => {
-  if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('pageId')
-    || isNaN(+request.body.pageId) || request.body.pageId < 0) {
-    response.send({ok: false});
-    return;
-  }
-
-  sessionValidCheck(request.cookies.sessionCode,
-    userId => {
-      templateAction.viewList(userId, request.body.pageId, templateAction.templateTypes.testTask, results => {
-        let list = [];
-        for (let i=0;i<results[0].length;++i) {
-          let ttt = JSON.parse(Common.uncompressString(results[0][i].template));
-          list.push({title: ttt.title, id: results[0][i].id});
-        }
-        response.send({ok: true, list: list});
-      }, () => {
+      },
+      () => {
         response.send({ok: false});
       });
-    },
-    () => {response.send({ok: false});});
-});
+  });
 
-app.post("/download_template_test_task", (request, response) => {
-  if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('templateId')
-    || isNaN(+request.body.templateId) || request.body.templateId < 0) {
-    response.send({ok: false});
-    return;
-  }
+  app.post(urls[indexTypeTemplate][1], (request, response) => {
+    if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('template')) {
+      response.send({ok: false});
+      return;
+    }
 
-  sessionValidCheck(request.cookies.sessionCode,
-    userId => {
-      templateAction.download(userId, request.body.templateId, templateAction.templateTypes.testTask, results => {
-        if (results[0].length === 1) {
-          response.send({ok: true, template: JSON.parse(Common.uncompressString(results[0][0].template))});
-        } else {
-          response.send({ok: false});
-        }
-      }, () => {
+    try {
+      if (!checkTemplateByIndex[indexTypeTemplate](JSON.parse(request.body.template))) {
+        response.send({ok: false});
+        return;
+      }
+    } catch (err) {
+      response.send({ok: false});
+      return;
+    }
+
+    sessionValidCheck(request.cookies.sessionCode,
+      userId => {
+        templateAction.upload(userId, typeByIndex[indexTypeTemplate], request.body.template,
+          results => {
+            response.send({ok: true, templateId: results[0].insertId});
+          }, () => {
+            response.send({ok: false});
+          });
+      },
+      () => {
         response.send({ok: false});
       });
-    },
-    () => {response.send({ok: false});});
-});
+  });
 
-app.post("/remove_template_test_task", (request, response) => {
-  if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('templateId')
-    || isNaN(+request.body.templateId) || request.body.templateId < 0) {
-    response.send({ok: false});
-    return;
-  }
+  app.post(urls[indexTypeTemplate][2], (request, response) => {
+    if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('templateId')
+      || isNaN(+request.body.templateId) || request.body.templateId < 0
+      || !request.body.hasOwnProperty('template')) {
+      response.send({ok: false});
+      return;
+    }
 
-  sessionValidCheck(request.cookies.sessionCode,
-    userId => {
-      templateAction.remove(userId, request.body.templateId, templateAction.templateTypes.testTask, () => {
-        response.send({ok: true});
-      }, () => {
+    try {
+      if (!checkTemplateByIndex[indexTypeTemplate](JSON.parse(request.body.template))) {
         response.send({ok: false});
-      });
-    },
-    () => {response.send({ok: false});});
-});
+        return;
+      }
+    } catch (err) {
+      response.send({ok: false});
+      return;
+    }
 
-app.post("/update_template_test_task", (request, response) => {
-  if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('templateId')
-    || isNaN(+request.body.templateId) || request.body.templateId < 0
-    || !request.body.hasOwnProperty('template')) {
-    response.send({ok: false});
-    return;
-  }
-
-  try {
-    generator.checkTemplateTestTask(JSON.parse(request.body.template));
-  } catch (err) {
-    response.send({ok: false});
-    return;
-  }
-
-  sessionValidCheck(request.cookies.sessionCode,
-    userId => {
-      templateAction.update(userId, request.body.templateId, request.body.template, templateAction.templateTypes.testTask, () => {
-        response.send({ok: true});
-      }, () => {
-        response.send({ok: false});
-      });
-    },
-    () => {response.send({ok: false});});
-});
-
-app.use("/generate_test_task", (request, response) => {
-  if (request.cookies.sessionCode === undefined || !request.query.hasOwnProperty('templateId') ||
-    !request.query.hasOwnProperty('number') || isNaN(+request.query.number) || +request.query.number <= 0
-    || +request.query.number > MAX_GENERATION_NUMBER || isNaN(+request.query.templateId) || +request.query.templateId < 0) {
-    response.send({ok: false});
-    return;
-  }
-
-  let number = +request.query.number;
-  let templateId = +request.query.templateId;
-
-  sessionValidCheck(request.cookies.sessionCode,
-    userId => {
-      templateAction.generate(userId, templateId, templateAction.templateTypes.testTask, number,
-        'gift', (template) => {
-          return generator.translateTestTaskToGIFT(generator.generateTestTaskFromTemplateTestTask(template));
-        }, (content) => {
-          const archive = archiver('zip');
-          response.attachment('content.zip');
-          archive.pipe(response);
-          for (let i = 0; i < content.length; ++i) {
-            archive.append(content[i][1],{name: content[i][0]});
-          }
-          archive.finalize();
-        }, () => {response.send('Упс, что-то пошло не так...');});
-    },
-    () => {response.send('Упс, что-то пошло не так...');});
-});
-
-app.post("/upload_template_test", (request, response) => {
-  if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('template')) {
-    response.send({ok: false});
-    return;
-  }
-  if (!generator.checkTemplateTest(JSON.parse(request.body.template))) {
-    response.send({ok: false});
-    return;
-  }
-
-  sessionValidCheck(request.cookies.sessionCode,
-    userId => {
-      templateAction.upload(userId, templateAction.templateTypes.test, request.body.template,
-        results => {
-          response.send({ok: true, templateId: results[0].insertId});
+    sessionValidCheck(request.cookies.sessionCode,
+      userId => {
+        templateAction.update(userId, request.body.templateId, request.body.template, typeByIndex[indexTypeTemplate], () => {
+          response.send({ok: true});
         }, () => {
           response.send({ok: false});
         });
-    },
-    () => {response.send({ok: false});});
-});
-
-app.post("/update_template_test", (request, response) => {
-  if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('templateId')
-    || isNaN(+request.body.templateId) || request.body.templateId < 0
-    || !request.body.hasOwnProperty('template')) {
-    response.send({ok: false});
-    return;
-  }
-  if (!generator.checkTemplateTest(JSON.parse(request.body.template))) {
-    response.send({ok: false});
-    return;
-  }
-
-  sessionValidCheck(request.cookies.sessionCode,
-    userId => {
-      templateAction.update(userId, request.body.templateId, request.body.template, templateAction.templateTypes.test, () => {
-        response.send({ok: true});
-      }, () => {
+      },
+      () => {
         response.send({ok: false});
       });
-    },
-    () => {response.send({ok: false});});
-});
+  });
 
-app.post("/download_template_test", (request, response) => {
-  if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('templateId')
-    || isNaN(+request.body.templateId) || request.body.templateId < 0) {
-    response.send({ok: false});
-    return;
-  }
+  app.post(urls[indexTypeTemplate][3], (request, response) => {
+    if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('templateId')
+      || isNaN(+request.body.templateId) || request.body.templateId < 0) {
+      response.send({ok: false});
+      return;
+    }
 
-  sessionValidCheck(request.cookies.sessionCode,
-    userId => {
-      templateAction.download(userId, request.body.templateId, templateAction.templateTypes.test, results => {
-        if (results[0].length === 1) {
-          response.send({ok: true, template: JSON.parse(Common.uncompressString(results[0][0].template))});
-        } else {
-          response.send({ok: false});
-        }
-      }, () => {
-        response.send({ok: false});
-      });
-    },
-    () => {response.send({ok: false});});
-});
-
-app.post("/view_list_template_test", (request, response) => {
-  if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('pageId')
-    || isNaN(+request.body.pageId) || request.body.pageId < 0) {
-    response.send({ok: false});
-    return;
-  }
-
-  sessionValidCheck(request.cookies.sessionCode,
-    userId => {
-      templateAction.viewList(userId, request.body.pageId, templateAction.templateTypes.test, results => {
-        let list = [];
-        for (let i=0;i<results[0].length;++i) {
-          let ttt = JSON.parse(Common.uncompressString(results[0][i].template));
-          list.push({title: ttt.title, id: results[0][i].id});
-        }
-        response.send({ok: true, list: list});
-      }, () => {
-        response.send({ok: false});
-      });
-    },
-    () => {response.send({ok: false});});
-});
-
-app.post("/remove_template_test", (request, response) => {
-  if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('templateId')
-    || isNaN(+request.body.templateId) || request.body.templateId < 0) {
-    response.send({ok: false});
-    return;
-  }
-
-  sessionValidCheck(request.cookies.sessionCode,
-    userId => {
-      templateAction.remove(userId, request.body.templateId, templateAction.templateTypes.test, () => {
-        response.send({ok: true});
-      }, () => {
-        response.send({ok: false});
-      });
-    },
-    () => {response.send({ok: false});});
-});
-
-app.use("/generate_test", (request, response) => {
-  if (request.cookies.sessionCode === undefined || !request.query.hasOwnProperty('templateId') ||
-    !request.query.hasOwnProperty('number') || isNaN(+request.query.number) || +request.query.number <= 0
-    || +request.query.number > MAX_GENERATION_NUMBER || isNaN(+request.query.templateId) || +request.query.templateId < 0) {
-    response.send({ok: false});
-    return;
-  }
-
-  let number = +request.query.number;
-  let templateId = +request.query.templateId;
-
-  sessionValidCheck(request.cookies.sessionCode,
-    userId => {
-      templateAction.generate(userId, templateId, templateAction.templateTypes.test, number,
-        'gift', (template) => {
-        return generator.translateTestToGIFT(generator.generateTestFormTemplateTest(template));
-      }, content => {
-          const archive = archiver('zip');
-          response.attachment('content.zip');
-          archive.pipe(response);
-          for (let i = 0; i < content.length; ++i) {
-            archive.append(content[i][1],{name: content[i][0]});
+    sessionValidCheck(request.cookies.sessionCode,
+      userId => {
+        templateAction.download(userId, request.body.templateId, typeByIndex[indexTypeTemplate], results => {
+          if (results[0].length === 1) {
+            response.send({ok: true, template: JSON.parse(Common.uncompressString(results[0][0].template))});
+          } else {
+            response.send({ok: false});
           }
-          archive.finalize();
-      }, () => {response.send('Упс, что-то пошло не так...');});
-    },
-    () => {response.send('Упс, что-то пошло не так...');});
-});
+        }, () => {
+          response.send({ok: false});
+        });
+      },
+      () => {
+        response.send({ok: false});
+      });
+  });
+
+  app.post(urls[indexTypeTemplate][4], (request, response) => {
+    if (request.cookies.sessionCode === undefined || !request.body.hasOwnProperty('templateId')
+      || isNaN(+request.body.templateId) || request.body.templateId < 0) {
+      response.send({ok: false});
+      return;
+    }
+
+    sessionValidCheck(request.cookies.sessionCode,
+      userId => {
+        templateAction.remove(userId, request.body.templateId, typeByIndex[indexTypeTemplate], () => {
+          response.send({ok: true});
+        }, () => {
+          response.send({ok: false});
+        });
+      },
+      () => {
+        response.send({ok: false});
+      });
+  });
+
+  app.use(urls[indexTypeTemplate][5], (request, response) => {
+    if (request.cookies.sessionCode === undefined || !request.query.hasOwnProperty('templateId') ||
+      !request.query.hasOwnProperty('number') || isNaN(+request.query.number) || +request.query.number <= 0
+      || +request.query.number > MAX_GENERATION_NUMBER || isNaN(+request.query.templateId) || +request.query.templateId < 0) {
+      response.send({ok: false});
+      return;
+    }
+
+    let number = +request.query.number;
+    let templateId = +request.query.templateId;
+
+    sessionValidCheck(request.cookies.sessionCode,
+      userId => {
+        templateAction.generate(userId, templateId, typeByIndex[indexTypeTemplate], number, contentExtensionByIndex[indexTypeTemplate],
+          generateContentByIndex[indexTypeTemplate], (content) => {
+            const archive = archiver('zip');
+            response.attachment('content.zip');
+            archive.pipe(response);
+            for (let i = 0; i < content.length; ++i) {
+              archive.append(content[i][1], {name: content[i][0]});
+            }
+            archive.finalize();
+          }, () => {
+            response.send('Упс, что-то пошло не так...');
+          });
+      },
+      () => {
+        response.send('Упс, что-то пошло не так...');
+      });
+  });
+}
 
 app.listen(SERVER_LISTEN_PORT);
