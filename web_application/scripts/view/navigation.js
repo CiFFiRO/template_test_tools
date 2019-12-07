@@ -268,31 +268,33 @@ class NavigationView {
     let createTemplateButtonId = 'createTemplateButtonId';
     let uploadTemplateButtonId = 'uploadTemplateButtonId';
     let listSpaceId = 'listSpaceId';
-    workspace.append('<div class="btn-group-horizontal btn-group-lg top-buffer-20" role="group" align="center">' +
-      '<button type="button" class="btn btn-success" id="' + createTemplateButtonId + '"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Создать</button>' +
-      '<button type="button" class="btn btn-primary left-buffer-20" id="' + uploadTemplateButtonId + '"><span class="glyphicon glyphicon-upload" aria-hidden="true"></span> Загрузить</button>' +
-      '<div class="container-fluid" id="' + listSpaceId + '"></div></div>');
+    workspace.append(`<div class="container-fluid" ><div class="row">
+      <div class="btn-group-horizontal btn-group-lg top-buffer-20" role="group" align="center">
+      <button type="button" class="btn btn-success" id="${createTemplateButtonId}"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Создать</button>
+      <button type="button" class="btn btn-primary left-buffer-20" id="${uploadTemplateButtonId}"><span class="glyphicon glyphicon-upload" aria-hidden="true"></span> Загрузить</button>
+      </div><div class="row top-buffer-20"><div class="container-fluid" id="${listSpaceId}"></div></div></div></div>`);
 
     let loadListPage, fillList;
 
     fillList = (listSpace, list, pageId) => {
       listSpace.empty();
+      listSpace.append(`<div class="row ">
+        <div class="col-md-8 border"><p class="top-buffer-7" align="center">Заголовок шаблона</p></div>
+        <div class="col-md-4 border"><p class="top-buffer-7" align="center">Действия</p></div>
+        </div>`);
       for (let i=0;i<list.length;++i) {
         let buttonEditId = 'buttonEditId_' + i;
         let buttonDownloadId = 'buttonDownloadId_' + i;
         let buttonRemoveId = 'buttonRemoveId_' + i;
         let buttonGenerate = 'buttonGenerate_'+i;
-        let buttonsText = '';
-        buttonsText += `<button id="${buttonGenerate}" type="button" class="btn btn-black top-buffer-20 right-buffer-30"><span class="glyphicon glyphicon-cog" aria-hidden="true"></span></button>`;
-        buttonsText += '<button id="' + buttonEditId + '" type="button" class="btn btn-warning top-buffer-20"><span class="glyphicon glyphicon-edit" aria-hidden="true"></span></button>' +
-          '<button id="' + buttonDownloadId + '" type="button" class="btn btn-info left-buffer-30 top-buffer-20"><span class="glyphicon glyphicon-download" aria-hidden="true"></span></button>' +
-          '<button id="' + buttonRemoveId + '" type="button" class="btn btn-danger left-buffer-30 top-buffer-20"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button>';
-        listSpace.append('<div class="row">' +
-          '<div class="col-md-8"><h3 class="form-signin-heading" align="left"><span class="left-buffer-20 label label-default">' + list[i].title + '</span></h3></div>' +
-          '<div class="col-md-4">' +
-          buttonsText +
-          '</div>' +
-          '</div><hr class="divider">');
+        listSpace.append(`<div class="row  border">
+          <div class="col-md-8"><p class="top-buffer-7">${list[i].title}</p></div>
+          <div class="col-md-4" align="center">
+          <button id="${buttonGenerate}" type="button" class="btn btn-black "><span class="glyphicon glyphicon-cog" aria-hidden="true"></span></button>
+          <button id="${buttonEditId}" type="button" class="btn btn-warning left-buffer-30 "><span class="glyphicon glyphicon-edit" aria-hidden="true"></span></button>
+          <button id="${buttonDownloadId}" type="button" class="btn btn-info left-buffer-30 "><span class="glyphicon glyphicon-download" aria-hidden="true"></span></button>
+          <button id="${buttonRemoveId}" type="button" class="btn btn-danger left-buffer-30 "><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button>
+          </div></div>`);
         $('#'+buttonEditId).on('click', () => {
           editCallback({templateId: list[i].id});
         });
@@ -348,7 +350,7 @@ class NavigationView {
       }
       let nextButtonId = 'nextButtonId';
       let prevButtonId = 'prevButtonId';
-      listSpace.append('<div class="row">' +
+      listSpace.append('<div class="row" align="center">' +
         '<div class="btn-group-horizontal top-buffer-20 bottom-buffer" role="group" >' +
         '<button type="button" class="btn btn-default" id="' + prevButtonId + '"><span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span></button>' +
         '<button type="button" class="btn btn-default left-buffer-20" id="' + nextButtonId + '"><span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span></button>' +
