@@ -166,6 +166,7 @@ class EditorTemplateTestTask {
 
     $(`#${this.headerId}`).val(form.header);
     $(`#${this.typeId}`).val(form.type);
+    $(`#${this.typeId}`).change();
     $(`#${this.grammarId}`).val(form.grammar);
     $(`#${this.textTaskId}`).val(form.testText);
     this.codeMirror.setValue(form.feedbackScript);
