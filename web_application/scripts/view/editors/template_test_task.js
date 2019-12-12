@@ -6,6 +6,10 @@ class EditorTemplateTestTask {
     this.textTask = '';
     this.feedbackScript = '';
 
+    this.marksForTextTaskCM = [];
+    this.textTaskCM = null;
+    this.feedbackScriptCM = null;
+
     this.templateId = null;
 
     this.headerId = 'EditorTemplateTestTask_headerId';
@@ -152,20 +156,80 @@ class EditorTemplateTestTask {
       this.grammar = $(`#${this.grammarId}`).val();
       updateStatus();
     });
-    $(`#${this.textTaskId}`).on('input change', () => {
-      this.textTask = $(`#${this.textTaskId}`).val();
-      updateStatus();
+    this.textTaskCM = CodeMirror.fromTextArea($(`#${this.textTaskId}`)[0], {
+      mode: "text",
+      theme: "darcula",
+      tabSize: 2
     });
-    this.codeMirror = CodeMirror.fromTextArea($(`#${this.feedbackScriptId}`)[0], {
+    this.textTaskCM.setSize(500, 300);
+    this.textTaskCM.on('change', (cm, change) => {
+      this.textTask = this.textTaskCM.getValue();
+      updateStatus();
+
+      let coordinatesLightingForTextTask = () => {
+        if (this.textTask < 3) {
+          return [];
+        }
+
+        let result = [];
+        let line = 0, character = 0;
+        let index = 0;
+        while (index<this.textTask.length) {
+          if (this.textTask[index] === '\n') {
+            ++line;
+            character = 0;
+            ++index;
+            continue;
+          }
+
+          if (this.textTask[index] === '{' && this.textTask[index-1] === '$' && this.textTask[index-2] !== '$') {
+            let begin = {line: line, ch: character-1};
+            while (index < this.textTask.length && this.textTask[index] !== '}') {
+              if (this.textTask[index] === '\n') {
+                ++line;
+                character = 0;
+                ++index;
+                continue;
+              }
+              ++character;
+              ++index;
+            }
+
+            if (index !== this.textTask.length) {
+              let end = {line: line, ch: character+1};
+              result.push([[begin, {line: begin.line, ch: begin.ch+2}],
+                [{line: begin.line, ch: begin.ch+2}, {line: end.line, ch: end.ch-1}],
+                [{line: end.line, ch: end.ch-1}, end]]);
+            }
+          } else {
+            ++character;
+            ++index;
+          }
+        }
+
+        return result;
+      };
+
+      let lightingCoordinates = coordinatesLightingForTextTask();
+      this.marksForTextTaskCM.forEach(mark => mark.clear());
+      this.marksForTextTaskCM = [];
+      lightingCoordinates.forEach(mark => {
+        this.marksForTextTaskCM.push(this.textTaskCM.markText(mark[0][0], mark[0][1], {css: 'color: #cb602d'}));
+        this.marksForTextTaskCM.push(this.textTaskCM.markText(mark[1][0], mark[1][1], {css: 'color: #ffc66d'}));
+        this.marksForTextTaskCM.push(this.textTaskCM.markText(mark[2][0], mark[2][1], {css: 'color: #cb602d'}));
+      });
+    });
+
+    this.feedbackScriptCM = CodeMirror.fromTextArea($(`#${this.feedbackScriptId}`)[0], {
       lineNumbers: true,
       matchBrackets: true,
       mode: "javascript",
       theme: "darcula",
       tabSize: 2
     });
-    this.codeMirror.setSize(750, 300);
-    this.codeMirror.on('change', (cm, change) => {
-      this.feedbackScript = this.codeMirror.getValue();
+    this.feedbackScriptCM.setSize(750, 300);
+    this.feedbackScriptCM.on('change', (cm, change) => {
+      this.feedbackScript = this.feedbackScriptCM.getValue();
       updateStatus();
     });
   }
@@ -185,8 +249,8 @@ class EditorTemplateTestTask {
     $(`#${this.typeId}`).val(form.type);
     $(`#${this.typeId}`).change();
     $(`#${this.grammarId}`).val(form.grammar);
-    $(`#${this.textTaskId}`).val(form.testText);
-    this.codeMirror.setValue(form.feedbackScript);
+    this.textTaskCM.setValue(form.testText);
+    this.feedbackScriptCM.setValue(form.feedbackScript);
   }
 
   check() {
@@ -223,8 +287,8 @@ class EditorTemplateTestTask {
   changeMode() {
     $(`#${this.headerId}`).attr('readonly', this.viewMode);
     $(`#${this.grammarId}`).attr('readonly', this.viewMode);
-    $(`#${this.textTaskId}`).attr('readonly', this.viewMode);
-    this.codeMirror.setOption('readOnly', this.viewMode);
+    this.textTaskCM.setOption('readOnly', this.viewMode);
+    this.feedbackScriptCM.setOption('readOnly', this.viewMode);
     $(`#${this.typeId}`).attr('disabled', this.viewMode);
   }
 }
