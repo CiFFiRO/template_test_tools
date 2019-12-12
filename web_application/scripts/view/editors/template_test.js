@@ -6,6 +6,11 @@ class EditorTemplateTest {
       return {title: data.title, orderType: data.orderType, arrayTemplates: data.arrayTemplateTestTask};
     }, (template) => {
       return {title: template.title, orderType: template.orderType, arrayTemplateTestTask: template.arrayTemplates};
+    }, (containerId, panelId, template) => {
+        let editor = new EditorTemplateTestTask();
+        editor.initialize(containerId, panelId);
+        editor.load(template, null);
+        editor.viewModeOn();
     });
   }
 

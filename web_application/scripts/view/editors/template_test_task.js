@@ -16,16 +16,83 @@ class EditorTemplateTestTask {
     this.infoButtonId = 'EditorTemplateTestTask_infoButtonId';
     this.downloadButtonId = 'EditorTemplateTestTask_downloadButtonId';
     this.uploadButtonId = 'EditorTemplateTestTask_uploadButtonId';
+    this.buttonsRowId = 'EditorTemplateTestTask_buttonsRowId';
+
+    this.viewMode = false;
+
+    this.panel = null;
+  }
+
+  initializeButtons() {
+    let tag = $(`#${this.buttonsRowId}`);
+    tag.append(`<div class="col-md-6">
+    <button type="button" class="btn btn-default" id="${this.infoButtonId}"><img src="icons/ok.png" width="32" height="32"></button> 
+    <button type="button" id="${this.downloadButtonId}" class="btn btn-info left-buffer-30""><span class="glyphicon glyphicon-download" aria-hidden="true"></span> Скачать</button>
+    <button type="button" id="${this.uploadButtonId}" class="btn btn-primary left-buffer-30"><span class="glyphicon glyphicon-upload" aria-hidden="true"></span> Загрузить</button>
+    </div>`);
+
+    $(`#${this.infoButtonId}`).on('click', () => {
+      let errorMessage = this.check();
+      if (errorMessage === null) {
+        errorMessage = 'Шаблон составлен правильно';
+      } else {
+        errorMessage = 'Шаблон содержит ошибки:\n'+errorMessage;
+      }
+      USER_MESSAGE(this.panel.attr('id'), errorMessage, 50, 15);
+    });
+    $(`#${this.downloadButtonId}`).on('click', () => {
+      if (this.check() === null) {
+        let template = templateTestTaskFormToTemplate(this.header, +this.type, this.grammar, this.textTask, this.feedbackScript);
+        SAVE_FILE(JSON.stringify(template), 'templateTestTask.json');
+      } else {
+        USER_MESSAGE(this.panel.attr('id'), 'Шаблон содержит ошибку', 50, 7);
+      }
+    });
+    $(`#${this.uploadButtonId}`).on('click', () => {
+      if (this.check() === null) {
+        let template = templateTestTaskFormToTemplate(this.header, +this.type, this.grammar, this.textTask, this.feedbackScript);
+        if (this.templateId === null) {
+          $.post('/upload_template_test_task', {template: JSON.stringify(template)})
+            .done(answer => {
+              if (answer.ok) {
+                this.templateId = answer.templateId;
+                USER_MESSAGE(this.panel.attr('id'), 'Шаблон загружен.', 20, 7);
+              } else {
+                USER_MESSAGE(this.panel.attr('id'), 'Шаблон синтаксически не корректен.', 30, 7);
+              }
+            })
+            .fail(() => {
+              SERVER_DOWN_MESSAGE(this.panel.attr('id'));
+            });
+        } else {
+          $.post('/update_template_test_task', {template: JSON.stringify(template), templateId: this.templateId})
+            .done(answer => {
+              if (!answer.ok) {
+                USER_MESSAGE(this.panel.attr('id'), 'Шаблон синтаксически не корректен.', 30, 7);
+              } else {
+                USER_MESSAGE(this.panel.attr('id'), 'Шаблон обновлен.', 20, 7);
+              }
+            })
+            .fail(() => {
+              SERVER_DOWN_MESSAGE(this.panel.attr('id'));
+            });
+        }
+      } else {
+        USER_MESSAGE(this.panel.attr('id'), 'Шаблон содержит ошибку', 50, 7);
+      }
+    });
+  }
+
+  removeButtons() {
+    let tag = $(`#${this.buttonsRowId}`);
+    tag.empty();
   }
 
   initialize(tagId, panelId) {
     let tag = $(`#${tagId}`);
-    tag.append(`<div class="row">
-    <div class="col-md-6">
-    <button type="button" class="btn btn-default" id="${this.infoButtonId}"><img src="icons/ok.png" width="32" height="32"></button> 
-    <button type="button" id="${this.downloadButtonId}" class="btn btn-info left-buffer-30""><span class="glyphicon glyphicon-download" aria-hidden="true"></span> Скачать</button>
-    <button type="button" id="${this.uploadButtonId}" class="btn btn-primary left-buffer-30"><span class="glyphicon glyphicon-upload" aria-hidden="true"></span> Загрузить</button>
-    </div></div>`);
+    this.panel = $(`#${panelId}`);
+    tag.append(`<div class="row" id="${this.buttonsRowId}"></div>`);
+    this.initializeButtons();
     tag.append(`<div class="row">
     <div class="col-md-6">
     <h3>Заголовок шаблона</h3>
@@ -43,12 +110,12 @@ class EditorTemplateTestTask {
     <div class="col-md-6">
     <h3>Грамматика</h3>
     <div class="input-group">
-    <textarea class="form-control" rows="5" cols="50" id="${this.grammarId}"></textarea>
+    <textarea class="form-control" rows="5" cols="65" id="${this.grammarId}"></textarea>
     </div></div>
     <div class="col-md-6">
     <h3>Текст тестового задания</h3>
     <div class="input-group">
-    <textarea class="form-control" rows="5" cols="50" id="${this.textTaskId}"></textarea>
+    <textarea class="form-control" rows="5" cols="65" id="${this.textTaskId}"></textarea>
     </div></div></div>
     `);
     tag.append(`<div class="row">
@@ -101,56 +168,6 @@ class EditorTemplateTestTask {
       this.feedbackScript = this.codeMirror.getValue();
       updateStatus();
     });
-    $(`#${this.infoButtonId}`).on('click', () => {
-      let errorMessage = this.check();
-      if (errorMessage === null) {
-        errorMessage = 'Шаблон составлен правильно';
-      } else {
-        errorMessage = 'Шаблон содержит ошибки:\n'+errorMessage;
-      }
-      USER_MESSAGE(panelId, errorMessage, 50, 15);
-    });
-    $(`#${this.downloadButtonId}`).on('click', () => {
-      if (this.check() === null) {
-        let template = templateTestTaskFormToTemplate(this.header, +this.type, this.grammar, this.textTask, this.feedbackScript);
-        SAVE_FILE(JSON.stringify(template), 'templateTestTask.json');
-      } else {
-        USER_MESSAGE(panelId, 'Шаблон содержит ошибку', 50, 7);
-      }
-    });
-    $(`#${this.uploadButtonId}`).on('click', () => {
-      if (this.check() === null) {
-        let template = templateTestTaskFormToTemplate(this.header, +this.type, this.grammar, this.textTask, this.feedbackScript);
-        if (this.templateId === null) {
-          $.post('/upload_template_test_task', {template: JSON.stringify(template)})
-            .done(answer => {
-              if (answer.ok) {
-                this.templateId = answer.templateId;
-                USER_MESSAGE(panelId, 'Шаблон загружен.', 20, 7);
-              } else {
-                USER_MESSAGE(panelId, 'Шаблон синтаксически не корректен.', 30, 7);
-              }
-            })
-            .fail(() => {
-              SERVER_DOWN_MESSAGE(panelId);
-            });
-        } else {
-          $.post('/update_template_test_task', {template: JSON.stringify(template), templateId: this.templateId})
-            .done(answer => {
-              if (!answer.ok) {
-                USER_MESSAGE(panelId, 'Шаблон синтаксически не корректен.', 30, 7);
-              } else {
-                USER_MESSAGE(panelId, 'Шаблон обновлен.', 20, 7);
-              }
-            })
-            .fail(() => {
-              SERVER_DOWN_MESSAGE(panelId);
-            });
-        }
-      } else {
-        USER_MESSAGE(panelId, 'Шаблон содержит ошибку', 50, 7);
-      }
-    });
   }
 
   load(template, templateId) {
@@ -183,4 +200,31 @@ class EditorTemplateTestTask {
     return null;
   }
 
+  viewModeOn() {
+    if (this.viewMode) {
+      return;
+    }
+
+    this.viewMode = true;
+    this.removeButtons();
+    this.changeMode();
+  }
+
+  viewModeOff() {
+    if (!this.viewMode) {
+      return;
+    }
+
+    this.viewMode = false;
+    this.initializeButtons();
+    this.changeMode();
+  }
+
+  changeMode() {
+    $(`#${this.headerId}`).attr('readonly', this.viewMode);
+    $(`#${this.grammarId}`).attr('readonly', this.viewMode);
+    $(`#${this.textTaskId}`).attr('readonly', this.viewMode);
+    this.codeMirror.setOption('readOnly', this.viewMode);
+    $(`#${this.typeId}`).attr('disabled', this.viewMode);
+  }
 }

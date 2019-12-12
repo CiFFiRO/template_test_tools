@@ -1,5 +1,6 @@
 class EditorTemplateAggregate {
-  constructor(uploadUrl, updateUrl, downloadTemplateUrl, viewListTemplatesUrl, dataToTemplate, templateToData) {
+  constructor(uploadUrl, updateUrl, downloadTemplateUrl, viewListTemplatesUrl, dataToTemplate, templateToData,
+              viewTemplate) {
     this.listTemplates = null;
     this.template = null;
     this.cloudTemplateId = null;
@@ -11,11 +12,14 @@ class EditorTemplateAggregate {
 
     this.dataToTemplate = dataToTemplate;
     this.templateToData = templateToData;
+    this.viewTemplate = viewTemplate;
+    
+    this.panel = null;
   }
 
   initialize(tagId, panelId, data, templateId) {
     let tag = $(`#${tagId}`);
-    let panel = $(`#${panelId}`);
+    this.panel = $(`#${panelId}`);
 
     this.template = (data === undefined) ? {title: '', orderType: 0, arrayTemplates: []} : this.dataToTemplate(data);
     this.cloudTemplateId = (templateId === undefined) ? null : templateId;
@@ -72,7 +76,7 @@ class EditorTemplateAggregate {
       let closeButtonId = 'closeButtonId';
       let nextButtonId = 'nextButtonId';
 
-      panel.append('<div class="panel panel-default" align="center" style="' + CENTER_POSITION_STYLE(60, 30) + 'overflow:auto;" id="' + windowChoiceId + '">' +
+      this.panel.append('<div class="panel panel-default" align="center" style="' + CENTER_POSITION_STYLE(60, 30) + 'overflow:auto;" id="' + windowChoiceId + '">' +
         '<div class="container-fluid" id="' + listChoiceId + '">' +
         '</div>'+
         '<div class="btn-group-horizontal top-buffer-20 bottom-buffer" role="group" >' +
@@ -203,13 +207,30 @@ class EditorTemplateAggregate {
       let buttonRemoveId = 'buttonRemoveId_' + i;
       let buttonUpId = 'buttonUpId_' + i;
       let buttonDownId = 'buttonDownId_' + i;
+      let viewTemplateId = 'viewTemplateId_' + i;
       this.listTemplates.append(`<div class="row border" id="${sectionId}">
         <div class="col-md-8"><p class="top-buffer-7">${this.template.arrayTemplates[i].title}</p></div>
         <div class="col-md-4" align="center">
+        <button id="${viewTemplateId}" type="button" class="btn btn-default "><span class="glyphicon glyphicon-eye-open" aria-hidden="true"></span></button>
         <button id="${buttonUpId}" type="button" class="btn btn-default "><span class="glyphicon glyphicon-arrow-up" aria-hidden="true"></span></button>
-        <button id="${buttonDownId}" type="button" class="btn btn-default left-buffer-30 "><span class="glyphicon glyphicon-arrow-down" aria-hidden="true"></span></button>
+        <button id="${buttonDownId}" type="button" class="btn btn-default"><span class="glyphicon glyphicon-arrow-down" aria-hidden="true"></span></button>
         <button id="${buttonRemoveId}" type="button" class="btn btn-danger left-buffer-45 "><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button>
         </div></div>`);
+      $('#' + viewTemplateId).on('click', () => {
+        let containerId = 'viewTemplateContainerId';
+        let windowViewId = 'windowViewId';
+        let closeButtonId = 'closeButtonId';
+        this.panel.append(`<div class="panel panel-default" style="${CENTER_POSITION_STYLE(80, 30) + 'overflow:auto;'}" id="${windowViewId}">
+          <div class="container-fluid" id="${containerId}">
+          <div class="row"><div class="col-md-12" align="center">
+          <button type="button" class="btn btn-default top-buffer-7" id="${closeButtonId}">Закрыть</button></div></div></div></div>`);
+
+        this.viewTemplate(containerId, this.panel.attr('id'), this.template.arrayTemplates[i]);
+
+        $('#' + closeButtonId).on('click', () => {
+          $(`#${windowViewId}`).remove();
+        });
+      });
       $('#' + buttonUpId).on('click', () => {
         if (i === 0 || this.template.arrayTemplates.length === 1) {
           return;

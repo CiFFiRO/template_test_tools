@@ -118,6 +118,6 @@ function CENTER_POSITION_STYLE(width, height) {
     "height:" + height + "em;" +
     "margin-top: -" + (height/2) + "em;" +
     "margin-left: -" + (width/2) + "em;" +
-    "border: 1px solid #ccc;position:fixed;z-index: 75;";
+    "border: 3px solid #ccc;position:fixed;z-index: 75;";
 }
 

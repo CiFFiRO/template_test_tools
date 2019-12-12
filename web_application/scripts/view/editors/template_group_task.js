@@ -6,6 +6,11 @@ class EditorTemplateGroupTask {
         return {title: data.title, orderType: data.orderType, arrayTemplates: data.arrayTemplateTask};
       }, (template) => {
         return {title: template.title, orderType: template.orderType, arrayTemplateTask: template.arrayTemplates};
+      }, (containerId, panelId, template) => {
+        let editor = new EditorTemplateTask();
+        editor.initialize(containerId, panelId);
+        editor.load(template, null);
+        editor.viewModeOn();
       });
   }
 
