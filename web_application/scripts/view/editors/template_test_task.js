@@ -6,6 +6,8 @@ class EditorTemplateTestTask {
     this.textTask = '';
     this.feedbackScript = '';
 
+    this.marksForGrammar = [];
+    this.grammarCM = null;
     this.marksForTextTaskCM = [];
     this.textTaskCM = null;
     this.feedbackScriptCM = null;
@@ -152,40 +154,153 @@ class EditorTemplateTestTask {
       this.type = +$(`#${this.typeId}`).val();
       updateStatus();
     });
-    $(`#${this.grammarId}`).on('input change', () => {
-      this.grammar = $(`#${this.grammarId}`).val();
+    this.grammarCM = CodeMirror.fromTextArea($(`#${this.grammarId}`)[0], {
+      mode: "text",
+      theme: "darcula",
+      tabSize: 2,
+      lineWrapping: true
+    });
+    this.grammarCM.setSize(500, 300);
+    this.grammarCM.on('change', (cm, change) => {
+      this.grammar = this.grammarCM.getValue();
       updateStatus();
+
+      let coordinatesLightingForGrammar = (text) => {
+        if (text.length < 3) {
+          return [];
+        }
+
+        let result = [];
+        let colors = {ignoreSpecial: '#499c54',
+          link: '#cb602d',
+          noTerminal: '#ffc66d',
+          choose: '#4a88c7',
+          end: '#c63bb4'
+        };
+        let index = 0;
+        let line = 0, character = 0;
+        while (index < text.length) {
+          let begin = {line: line, ch: character};
+          while (index < text.length && text[index] !== '=') {
+            if (text[index] === '\n') {
+              ++line;
+              character = 0;
+              ++index;
+              continue;
+            }
+            ++character;
+            ++index;
+          }
+          result.push([begin, {line: line, ch: character}, colors.noTerminal]);
+          while (index < text.length) {
+            if (text[index] === '\n') {
+              ++line;
+              character = 0;
+              ++index;
+              continue;
+            }
+
+            begin = {line: line, ch: character};
+            if (text[index] === '|') {
+              result.push([begin, {line: line, ch: character+1}, colors.choose]);
+              ++character;
+              ++index;
+            }
+            else if (text[index] === '$') {
+              ++character;
+              ++index;
+
+              if (text[index] === '$' || text[index] === '|') {
+                result.push([begin, {line: line, ch: character+1}, colors.ignoreSpecial]);
+                ++character;
+                ++index;
+              } else if (text[index] === '{') {
+                result.push([begin, {line: line, ch: character+1}, colors.link]);
+                while (index < text.length && text[index] !== '}') {
+                  if (text[index] === '\n') {
+                    ++line;
+                    character = 0;
+                    ++index;
+                    continue;
+                  }
+                  ++character;
+                  ++index;
+                }
+                result.push([{line: begin.line, ch: begin.ch+2}, {line: line, ch: character}, colors.noTerminal]);
+                result.push([{line: line, ch: character}, {line: line, ch: character+1}, colors.link]);
+              } else {
+                while (index < text.length && text[index] !== ')') {
+                  if (text[index] === '\n') {
+                    ++line;
+                    character = 0;
+                    ++index;
+                    continue;
+                  }
+                  ++character;
+                  ++index;
+                }
+                result.push([begin, {line: line, ch: character+1}, colors.noTerminal]);
+              }
+            } else if (text[index] === '.' && text[index+1] === '.') {
+              result.push([begin, {line: line, ch: character+2}, colors.ignoreSpecial]);
+              character += 2;
+              index += 2;
+            } else if (text[index] === '.') {
+              result.push([begin, {line: line, ch: character+1}, colors.end]);
+              ++character;
+              ++index;
+              break;
+            } else {
+              ++character;
+              ++index;
+            }
+          }
+        }
+
+        return result;
+      };
+
+      let lightingCoordinates = coordinatesLightingForGrammar(this.grammar);
+      this.marksForGrammar.forEach(mark => mark.clear());
+      this.marksForGrammar = [];
+      lightingCoordinates.forEach(mark => {
+        this.marksForGrammar.push(this.grammarCM.markText(mark[0], mark[1], {css: 'color: '+mark[2]}));
+      });
     });
     this.textTaskCM = CodeMirror.fromTextArea($(`#${this.textTaskId}`)[0], {
       mode: "text",
       theme: "darcula",
-      tabSize: 2
+      tabSize: 2,
+      lineWrapping: true
     });
     this.textTaskCM.setSize(500, 300);
     this.textTaskCM.on('change', (cm, change) => {
       this.textTask = this.textTaskCM.getValue();
       updateStatus();
 
-      let coordinatesLightingForTextTask = () => {
-        if (this.textTask < 3) {
+      let coordinatesLightingForTextTask = (text) => {
+        if (text.length < 3) {
           return [];
         }
 
         let result = [];
         let line = 0, character = 0;
         let index = 0;
-        while (index<this.textTask.length) {
-          if (this.textTask[index] === '\n') {
+        let colors = {ignoreSpecial: '#499c54',
+          link: '#cb602d',
+          noTerminal: '#ffc66d'};
+        while (index < text.length) {
+          if (text[index] === '\n') {
             ++line;
             character = 0;
             ++index;
             continue;
           }
 
-          if (this.textTask[index] === '{' && this.textTask[index-1] === '$' && this.textTask[index-2] !== '$') {
+          if (text[index] === '{' && text[index-1] === '$' && text[index-2] !== '$') {
             let begin = {line: line, ch: character-1};
-            while (index < this.textTask.length && this.textTask[index] !== '}') {
-              if (this.textTask[index] === '\n') {
+            while (index < text.length && text[index] !== '}') {
+              if (text[index] === '\n') {
                 ++line;
                 character = 0;
                 ++index;
@@ -195,12 +310,16 @@ class EditorTemplateTestTask {
               ++index;
             }
 
-            if (index !== this.textTask.length) {
+            if (index !== text.length) {
               let end = {line: line, ch: character+1};
-              result.push([[begin, {line: begin.line, ch: begin.ch+2}],
-                [{line: begin.line, ch: begin.ch+2}, {line: end.line, ch: end.ch-1}],
-                [{line: end.line, ch: end.ch-1}, end]]);
+              result.push([begin, {line: begin.line, ch: begin.ch+2}, colors.link]);
+              result.push([{line: begin.line, ch: begin.ch+2}, {line: end.line, ch: end.ch-1}, colors.noTerminal]);
+              result.push([{line: end.line, ch: end.ch-1}, end, colors.link]);
             }
+          } else if (text[index] === '$' && text[index+1] === '$') {
+            result.push([{line: line, ch: character}, {line: line, ch: character+2}, colors.ignoreSpecial]);
+            character += 2;
+            index += 2;
           } else {
             ++character;
             ++index;
@@ -210,13 +329,11 @@ class EditorTemplateTestTask {
         return result;
       };
 
-      let lightingCoordinates = coordinatesLightingForTextTask();
+      let lightingCoordinates = coordinatesLightingForTextTask(this.textTask);
       this.marksForTextTaskCM.forEach(mark => mark.clear());
       this.marksForTextTaskCM = [];
       lightingCoordinates.forEach(mark => {
-        this.marksForTextTaskCM.push(this.textTaskCM.markText(mark[0][0], mark[0][1], {css: 'color: #cb602d'}));
-        this.marksForTextTaskCM.push(this.textTaskCM.markText(mark[1][0], mark[1][1], {css: 'color: #ffc66d'}));
-        this.marksForTextTaskCM.push(this.textTaskCM.markText(mark[2][0], mark[2][1], {css: 'color: #cb602d'}));
+        this.marksForTextTaskCM.push(this.textTaskCM.markText(mark[0], mark[1], {css: 'color: '+mark[2]}));
       });
     });
 
@@ -248,7 +365,7 @@ class EditorTemplateTestTask {
     $(`#${this.headerId}`).val(form.header);
     $(`#${this.typeId}`).val(form.type);
     $(`#${this.typeId}`).change();
-    $(`#${this.grammarId}`).val(form.grammar);
+    this.grammarCM.setValue(form.grammar);
     this.textTaskCM.setValue(form.testText);
     this.feedbackScriptCM.setValue(form.feedbackScript);
   }
@@ -286,7 +403,7 @@ class EditorTemplateTestTask {
 
   changeMode() {
     $(`#${this.headerId}`).attr('readonly', this.viewMode);
-    $(`#${this.grammarId}`).attr('readonly', this.viewMode);
+    this.grammarCM.setOption('readOnly', this.viewMode);
     this.textTaskCM.setOption('readOnly', this.viewMode);
     this.feedbackScriptCM.setOption('readOnly', this.viewMode);
     $(`#${this.typeId}`).attr('disabled', this.viewMode);
