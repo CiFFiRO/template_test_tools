@@ -1,12 +1,10 @@
 const IS_CSHARP_INTERPRETER = false;
 const FUNCTIONS_RE = 'rInteger\\(\\s*[+-]?[0-9]+\\s*,\\s*[+-]?[0-9]+\\s*\\)|' +
   'rFloat\\(\\s*[-+]?(?:\\d*\\.?\\d+|\\d+\\.?\\d*)(?:[eE][-+]?\\d+)?\\s*,' +
-  '\\s*[-+]?(?:\\d*\\.?\\d+|\\d+\\.?\\d*)(?:[eE][-+]?\\d+)?\\s*,\\s*[+]?[1-9]+[0-9]*\\s*\\)|' +
-  'rElement\\(\\s*(\\s*[a-zA-Z0-9]+\\s*,)*\\s*[a-zA-Z0-9]+\\s*\\)';
+  '\\s*[-+]?(?:\\d*\\.?\\d+|\\d+\\.?\\d*)(?:[eE][-+]?\\d+)?\\s*,\\s*[+]?[1-9]+[0-9]*\\s*\\)';
 const FUNCTIONS_GRAMMAR_TASK_RE = 'rInteger\\$\\(\\s*[+-]?[0-9]+\\s*,\\s*[+-]?[0-9]+\\s*\\$\\)|' +
   'rFloat\\$\\(\\s*[-+]?(?:\\d*\\$\\.?\\d+|\\d+\\$\\.?\\d*)(?:[eE][-+]?\\d+)?\\s*,' +
-  '\\s*[-+]?(?:\\d*\\$\\.?\\d+|\\d+\\$\\.?\\d*)(?:[eE][-+]?\\d+)?\\s*,\\s*[+]?[1-9]+[0-9]*\\s*\\$\\)|' +
-  'rElement\\$\\(\\s*(\\s*[a-zA-Z0-9]+\\s*,)*\\s*[a-zA-Z0-9]+\\s*\\$\\)';
+  '\\s*[-+]?(?:\\d*\\$\\.?\\d+|\\d+\\$\\.?\\d*)(?:[eE][-+]?\\d+)?\\s*,\\s*[+]?[1-9]+[0-9]*\\s*\\$\\)';
 const PREGENERATED_ANSWER_SCRIPT_PART = '' +
   'let __FALSE_OPTIONS = [];' +
   'let __ANSWER = -1;' +
@@ -71,10 +69,6 @@ function rInteger(min, max) {
 function rFloat(min, max, length) {
   let value = Math.random() * (max - min) + min;
   return value.toFixed(length);
-}
-
-function rElement(elements) {
-  return elements[getRandomInt(0, elements.length)];
 }
 
 function rSubArray(array, length) {
@@ -356,14 +350,6 @@ function replaceFunctions(production) {
       }
 
       let value = rFloat(min, max, length);
-      result = result.substring(0, info[0]) + value + result.substring(info[1] + 1);
-    } else if (name === 'rElement') {
-      // TODO: протестить на работоспособность
-      if (arguments.length === 0) {
-        throw new Error('rElement: does not have arguments');
-      }
-
-      let value = arguments[getRandomInt(0, arguments.length)];
       result = result.substring(0, info[0]) + value + result.substring(info[1] + 1);
     } else {
       throw new Error('Function ' + name + ' is not exist');
