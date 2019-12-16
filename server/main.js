@@ -5,30 +5,19 @@ const cookieParser = require('cookie-parser');
 const Validator = require('./validator');
 const mysql = require("mysql2");
 const nodemailer = require('nodemailer');
-const generator = require('../generator/generator');
+const generator = require('./generator');
 const Log = require('./log');
 const process = require('process');
 const archiver = require('archiver');
 const TemplateAction = require('./template_action');
 const Common = require('./common');
+const fs = require('fs');
+const Ini = require('ini');
 
-const SERVER_LISTEN_PORT = 4001;
-const REGISTRATION_CONFIRM_TIME_LIMIT = 24*60*60;
-const SESSION_TIME_LIMIT = 24*60*60;
-const LOG_FILE_NAME = path.join(__dirname, "./log.txt");
-const TEMPLATES_PER_PAGE = 10;
 const MAX_GENERATION_NUMBER = 50;
-const MAIL_HOST = "smtp.mail.ru";
-const MAIL_PORT = 465;
-const MAIL_SECURE = true;
-const MAIL_USER = "templatetestportal@mail.ru";
-const MAIL_USER_PASS = "nl5BRW8xCIYNDZU59hIYh9Ys6hf4klkw";
-const MYSQL_HOST = "localhost";
-const MYSQL_USER = "main";
-const MYSQL_DATABASE_NAME = "server";
-const MYSQL_USER_PASS = "mainpassword";
 
-let logging = new Log(LOG_FILE_NAME);
+let config = Ini.parse(fs.readFileSync(path.join(__dirname, "config.ini"), 'utf-8'));
+let logging = new Log(path.join(__dirname, "log.txt"));
 
 logging.log('Server start');
 
@@ -41,12 +30,12 @@ for (let i=0;i<signals.length;++i) {
 }
 
 const transporter = nodemailer.createTransport({
-  host: MAIL_HOST,
-  port: MAIL_PORT,
-  secure: MAIL_SECURE,
+  host: config.Mail.Host,
+  port: config.Mail.Port,
+  secure: config.Mail.Secure,
   auth: {
-    user: MAIL_USER,
-    pass: MAIL_USER_PASS
+    user: config.Mail.User,
+    pass: config.Mail.Pass
   }
 });
 
@@ -60,10 +49,10 @@ transporter.verify((error, success) => {
 });
 
 const connection = mysql.createConnection({
-  host: MYSQL_HOST,
-  user: MYSQL_USER,
-  database: MYSQL_DATABASE_NAME,
-  password: MYSQL_USER_PASS
+  host: config.MySQL.Host,
+  user: config.MySQL.User,
+  database: config.MySQL.DatabaseName,
+  password: config.MySQL.Pass
 }).promise();
 
 connection.connect()
@@ -73,7 +62,7 @@ connection.connect()
   process.exit(1);
 });
 
-let templateAction = new TemplateAction(connection, TEMPLATES_PER_PAGE, logging);
+let templateAction = new TemplateAction(connection, config.Server.TemplatesPerPage, logging);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -149,7 +138,7 @@ app.post("/registration_confirm", (request, response) => {
         response.send({ok: false});
       } else {
         let data = results[0][0];
-        if (data.time + REGISTRATION_CONFIRM_TIME_LIMIT < Common.timeNow() || data.complete === 1) {
+        if (data.time + config.Server.RegistrationConfirmTimeLimit < Common.timeNow() || data.complete === 1) {
           response.send({ok: false});
         } else {
           connection.query("UPDATE `server`.`registration` SET `registration`.`complete`=1 WHERE `registration`.`confirm_hash` = ?",
@@ -215,7 +204,7 @@ app.post("/login", (request, response) => {
             connection.query("INSERT INTO `server`.`session` (`user_id`, `hash`, `time`) VALUES (?, ?, ?)",
               [userId, sessionCode, Common.timeNow()])
               .then(() => {
-                response.cookie('sessionCode', sessionCode, {maxAge: 1000 * SESSION_TIME_LIMIT});
+                response.cookie('sessionCode', sessionCode, {maxAge: 1000 * config.Server.SessionTimeLimit});
                 response.send({ok: true, user: user});
               })
               .catch(err => {
@@ -241,7 +230,7 @@ function sessionValidCheck(sessionCode, callbackPositive, callbackNegative) {
   connection.query("SELECT * FROM `server`.`session` WHERE `session`.`hash` = ?", [sessionCode])
     .then(results => {
       if (results[0].length > 0) {
-        if (results[0][0].time + SESSION_TIME_LIMIT > Common.timeNow()) {
+        if (results[0][0].time + config.Server.SessionTimeLimit > Common.timeNow()) {
           callbackPositive(results[0][0].user_id);
         } else {
           callbackNegative();
@@ -497,4 +486,4 @@ for (let indexTypeTemplate=0;indexTypeTemplate<urls.length;++indexTypeTemplate) 
   });
 }
 
-app.listen(SERVER_LISTEN_PORT);
+app.listen(config.Server.ListenPort);
