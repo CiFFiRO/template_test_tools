@@ -229,39 +229,60 @@ class NavigationView {
     let logoutButtonId = 'logoutButtonId';
     let workspaceId = 'workspaceId';
     this.panel.append(
-      '<div class="btn-group-horizontal btn-group-lg top-buffer-20 user-menu-position" role="group" align="center">' +
-      '<button type="button" class="btn btn-default" id="' + viewDocumentationId + '">Документация</button>' +
-      '<button type="button" class="btn btn-default left-buffer-20" id="' + editTemplateTestTasksButtonId + '">Список ШТЗ</button>' +
-      '<button type="button" class="btn btn-default left-buffer-20" id="' + editTemplateTestsButtonId + '">Список ШТ</button>' +
-      '<button type="button" class="btn btn-default left-buffer-20" id="' + editTemplateTasksButtonId + '">Список ШЗ</button>' +
-      '<button type="button" class="btn btn-default left-buffer-20" id="' + editTemplateGroupTasksButtonId + '">Список ШГЗ</button>' +
-      '<button type="button" class="btn btn-default left-buffer-20" id="' + logoutButtonId + '"><span class="glyphicon glyphicon-log-out" aria-hidden="true"></span></button>' +
-      '</div><div id="' + workspaceId + '" class="workspace-position container-fluid"></div>');
+      `<div class="container-fluid">
+      <div class="row">
+      <div class="col-md-11">
+      <ul class="nav nav-tabs  top-buffer-20" align="center">
+      <li role="presentation"  id="${viewDocumentationId}"><a href="#">Документация</a></li>
+      <li role="presentation" id="${editTemplateTestTasksButtonId}"><a href="#">Шаблоны тестовых заданий</a></li>
+      <li role="presentation" id="${editTemplateTestsButtonId}"><a href="#">Шаблоны тестов</a></li>
+      <li role="presentation"  id="${editTemplateTasksButtonId}"><a href="#">Шаблоны заданий</a></li>
+      <li role="presentation"  id="${editTemplateGroupTasksButtonId}"><a href="#">Шаблоны групп заданий</a></li>
+      </ul></div>
+      <div class="col-md-1">
+      <button type="button" class="btn btn-default top-buffer-20" id="${logoutButtonId}"><span class="glyphicon glyphicon-log-out" aria-hidden="true"></span></button>
+      </div>
+      </div><div class="row"><div id="${workspaceId}" class="container-fluid top-buffer-7"></div></div></div>`);
     let workspace = $('#'+workspaceId);
+    let clearActive = () => {
+      $(`#${viewDocumentationId}, #${editTemplateTestTasksButtonId}, #${editTemplateTestsButtonId}, #${editTemplateTasksButtonId}, #${editTemplateGroupTasksButtonId}`).removeClass("active");
+    };
 
     $('#'+logoutButtonId).on('click', () => {
       this.logout();
     });
     $('#'+viewDocumentationId).on('click', () => {
       workspace.empty();
+      clearActive();
+      $(`#${viewDocumentationId}`).addClass("active");
       this.openHelp(workspace);
     });
     $('#'+editTemplateTestTasksButtonId).on('click', () => {
       workspace.empty();
+      clearActive();
+      $(`#${editTemplateTestTasksButtonId}`).addClass("active");
       this.actionsTemplateTestTasks(workspace);
     });
     $('#'+editTemplateTestsButtonId).on('click', () => {
       workspace.empty();
+      clearActive();
+      $(`#${editTemplateTestsButtonId}`).addClass("active");
       this.actionsTemplateTests(workspace);
     });
     $('#'+editTemplateTasksButtonId).on('click', () => {
       workspace.empty();
+      clearActive();
+      $(`#${editTemplateTasksButtonId}`).addClass("active");
       this.actionsTemplateTasks(workspace);
     });
     $('#'+editTemplateGroupTasksButtonId).on('click', () => {
       workspace.empty();
+      clearActive();
+      $(`#${editTemplateGroupTasksButtonId}`).addClass("active");
       this.actionsTemplateGroupTasks(workspace);
     });
+
+    $('#'+viewDocumentationId).click();
   }
 
   openHelp(workspace) {
@@ -318,20 +339,17 @@ class NavigationView {
     let createTemplateButtonId = 'createTemplateButtonId';
     let uploadTemplateButtonId = 'uploadTemplateButtonId';
     let listSpaceId = 'listSpaceId';
-    workspace.append(`<div class="container-fluid" ><div class="row">
-      <div class="btn-group-horizontal btn-group-lg top-buffer-20" role="group" align="center">
-      <button type="button" class="btn btn-success" id="${createTemplateButtonId}"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span> Создать</button>
-      <button type="button" class="btn btn-primary left-buffer-20" id="${uploadTemplateButtonId}"><span class="glyphicon glyphicon-upload" aria-hidden="true"></span> Загрузить</button>
-      </div><div class="row top-buffer-20"><div class="container-fluid" id="${listSpaceId}"></div></div></div></div>`);
+    workspace.append(`<div class="container-fluid " ><div class="row">
+      <div class="col-md-12">
+      <div class="btn-group-horizontal btn-group-sm" role="group" align="left">
+      <button type="button" class="btn btn-default" id="${createTemplateButtonId}"><span class="glyphicon glyphicon-plus text-success" aria-hidden="true"></span> Создать</button>
+      <button type="button" class="btn btn-default left-buffer-20" id="${uploadTemplateButtonId}"><span class="glyphicon glyphicon-upload text-primary" aria-hidden="true"></span> Загрузить</button>
+      </div></div><div class="row"><div class="col-md-12"><div class="container-fluid top-buffer-7" id="${listSpaceId}"></div></div></div></div></div>`);
 
     let loadListPage, fillList;
 
     fillList = (listSpace, list, pageId) => {
       listSpace.empty();
-      listSpace.append(`<div class="row ">
-        <div class="col-md-8 border"><p class="top-buffer-7" align="center">Заголовок шаблона</p></div>
-        <div class="col-md-4 border"><p class="top-buffer-7" align="center">Действия</p></div>
-        </div>`);
       for (let i=0;i<list.length;++i) {
         let buttonEditId = 'buttonEditId_' + i;
         let buttonDownloadId = 'buttonDownloadId_' + i;
@@ -340,10 +358,10 @@ class NavigationView {
         listSpace.append(`<div class="row  border">
           <div class="col-md-8"><p class="top-buffer-7">${list[i].title}</p></div>
           <div class="col-md-4" align="center">
-          <button id="${buttonGenerate}" type="button" class="btn btn-black "><span class="glyphicon glyphicon-cog" aria-hidden="true"></span></button>
-          <button id="${buttonEditId}" type="button" class="btn btn-warning left-buffer-30 "><span class="glyphicon glyphicon-edit" aria-hidden="true"></span></button>
-          <button id="${buttonDownloadId}" type="button" class="btn btn-info left-buffer-30 "><span class="glyphicon glyphicon-download" aria-hidden="true"></span></button>
-          <button id="${buttonRemoveId}" type="button" class="btn btn-danger left-buffer-30 "><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button>
+          <button id="${buttonGenerate}" type="button" class="btn btn-default "><span class="glyphicon glyphicon-cog text-black" aria-hidden="true"></span></button>
+          <button id="${buttonEditId}" type="button" class="btn btn-default left-buffer-30 "><span class="glyphicon glyphicon-edit text-warning" aria-hidden="true"></span></button>
+          <button id="${buttonDownloadId}" type="button" class="btn btn-default left-buffer-30 "><span class="glyphicon glyphicon-download text-info" aria-hidden="true"></span></button>
+          <button id="${buttonRemoveId}" type="button" class="btn btn-default left-buffer-30 "><span class="glyphicon glyphicon-remove text-danger" aria-hidden="true"></span></button>
           </div></div>`);
         $('#'+buttonEditId).on('click', () => {
           editCallback({templateId: list[i].id});

@@ -34,9 +34,11 @@ class EditorTemplateAggregate {
 
     tag.append(`<div class="container-fluid">
       <div class="row">
-      <div class="col-md-4">      
-      <button type="button" id="${downloadButtonId}" class="btn btn-info"><span class="glyphicon glyphicon-download" aria-hidden="true"></span> Скачать</button>
-      <button type="button" id="${uploadButtonId}" class="btn btn-primary left-buffer-30"><span class="glyphicon glyphicon-upload" aria-hidden="true"></span> Загрузить</button>      
+      <div class="col-md-4">
+      <div class="btn-group-horizontal btn-group-sm" role="group" align="left">      
+      <button type="button" id="${downloadButtonId}" class="btn btn-default"><span class="glyphicon glyphicon-download text-info" aria-hidden="true"></span> Скачать</button>
+      <button type="button" id="${uploadButtonId}" class="btn btn-default left-buffer-30"><span class="glyphicon glyphicon-upload text-primary" aria-hidden="true"></span> Загрузить</button>
+      </div>      
       </div></div>
       <div class="row">
       <div class="col-md-6">
@@ -52,7 +54,7 @@ class EditorTemplateAggregate {
       <div class="row">
       <div class="col-md-12">
       <h3>Последовательность шаблонов</h3>
-      <button id="${addTemplateButtonId}" type="button" class="btn btn-success">Добавить шаблон</button>
+      <button id="${addTemplateButtonId}" type="button" class="btn btn-default"><span class="glyphicon glyphicon-plus text-success" aria-hidden="true"></span> Добавить шаблон</button>
       <div id="${listTemplatesId}" class="container-fluid top-buffer-15"></div>      
       </div></div>
       <div class="row" id="${editListTemplateId}">
@@ -95,7 +97,7 @@ class EditorTemplateAggregate {
           list.append(`<div class="row border">
             <div class="col-md-8"><p class="top-buffer-7" align="left">${answer.list[i].title}</p></div>
             <div class="col-md-4">
-            <button id="${buttonAddId}" type="button" class="btn btn-success"><span class="glyphicon glyphicon-plus" aria-hidden="true"></span></button>
+            <button id="${buttonAddId}" type="button" class="btn btn-default"><span class="glyphicon glyphicon-plus text-success" aria-hidden="true"></span></button>
             </div></div>`);
           $('#'+buttonAddId).on('click', () => {
             $.post(this.downloadTemplateUrl, {templateId: answer.list[i].id})
@@ -214,7 +216,7 @@ class EditorTemplateAggregate {
         <button id="${viewTemplateId}" type="button" class="btn btn-default "><span class="glyphicon glyphicon-eye-open" aria-hidden="true"></span></button>
         <button id="${buttonUpId}" type="button" class="btn btn-default "><span class="glyphicon glyphicon-arrow-up" aria-hidden="true"></span></button>
         <button id="${buttonDownId}" type="button" class="btn btn-default"><span class="glyphicon glyphicon-arrow-down" aria-hidden="true"></span></button>
-        <button id="${buttonRemoveId}" type="button" class="btn btn-danger left-buffer-45 "><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></button>
+        <button id="${buttonRemoveId}" type="button" class="btn btn-default left-buffer-45 "><span class="glyphicon glyphicon-remove text-danger" aria-hidden="true"></span></button>
         </div></div>`);
       $('#' + viewTemplateId).on('click', () => {
         let containerId = 'viewTemplateContainerId';

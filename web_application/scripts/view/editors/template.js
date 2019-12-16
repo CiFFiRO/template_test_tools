@@ -47,9 +47,11 @@ class EditorTemplate {
   initializeButtons() {
     let tag = $(`#${this.buttonsRowId}`);
     tag.append(`<div class="col-md-6">
+    <div class="btn-group-horizontal btn-group-sm" role="group" align="left">
     <button type="button" class="btn btn-default" id="${this.infoButtonId}"><img src="icons/ok.png" width="32" height="32"></button> 
-    <button type="button" id="${this.downloadButtonId}" class="btn btn-info left-buffer-30""><span class="glyphicon glyphicon-download" aria-hidden="true"></span> Скачать</button>
-    <button type="button" id="${this.uploadButtonId}" class="btn btn-primary left-buffer-30"><span class="glyphicon glyphicon-upload" aria-hidden="true"></span> Загрузить</button>
+    <button type="button" id="${this.downloadButtonId}" class="btn btn-default left-buffer-30""><span class="glyphicon glyphicon-download text-info" aria-hidden="true"></span> Скачать</button>
+    <button type="button" id="${this.uploadButtonId}" class="btn btn-default left-buffer-30"><span class="glyphicon glyphicon-upload text-primary" aria-hidden="true"></span> Загрузить</button>
+    </div>
     </div>`);
 
     $(`#${this.infoButtonId}`).on('click', () => {
@@ -125,9 +127,9 @@ class EditorTemplate {
       secondRow += `<div class="col-md-6">
       <h3>Тип тестового задания</h3>
       <select class="selectpicker" id="${this.typeId}">
-      <option value="0" selected>Short answer</option>
-      <option value="1">Single choose</option>
-      <option value="2">Multiple choose</option>
+      <option value="0" selected>Короткий ответ (открытый)</option>
+      <option value="1">Один выбор (закрытый)</option>
+      <option value="2">Множественный выбор (закрытый)</option>
       </select></div>`;
     }
 
