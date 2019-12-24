@@ -92,7 +92,7 @@ app.post("/registration", (request, response) => {
               .then(() => {
                 let mailOptions = {
                   from: 'templatetestportal@mail.ru',
-                  to: 'new_mail_conf@protonmail.com',
+                  to: request.body.email,
                   subject: 'Регистрация на портале TemplateTest',
                   text: 'Здравствуйте!\nВаш код подтверждения регистрации - ' +  confirmCode + '.\nДействителен сутки.' +
                   '\n\n\nПисьмо отправленно автоматически, пожалуйста, не отвечайте на него.'
