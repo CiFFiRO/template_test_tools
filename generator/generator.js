@@ -56,7 +56,6 @@ const MULTIPLE_CHOOSE_TYPE = 2;
 
 const STRONG_ORDER_TYPE = 0;
 const RANDOM_ORDER_TYPE = 1;
-// TODO: текст исключений переработать, где он слабо осмыслен, и мб на русском его написать.
 
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
@@ -124,13 +123,13 @@ function CheckTemplateTestTaskGrammar(grammar) {
 function templateTestTaskFormToTemplate(header, type, grammar, textTask, feedbackScript) {
   if (typeof header !== 'string' || typeof grammar !== 'string' ||
     typeof textTask !== 'string' || typeof feedbackScript !== 'string' || typeof type !== 'number') {
-    throw new Error('Argument(s) type(s) is not current');
+    throw new Error('Некорректный тип аргументов');
   }
   if (type < SHORT_ANSWER_TYPE || type > MULTIPLE_CHOOSE_TYPE) {
-    throw new Error('Type test task is not current');
+    throw new Error('Некорректный тип тестового задания');
   }
   if (!CheckTemplateTestTaskGrammar(grammar)) {
-    throw new Error('Grammar has syntax error');
+    throw new Error('Синтаксическая ошибка в грамматики');
   }
 
   let rules = {};
@@ -144,10 +143,10 @@ function templateTestTaskFormToTemplate(header, type, grammar, textTask, feedbac
     while (grammar[i] !== '=')++i;
     let nonTerminal = grammar.substring(beginNonTerminal, i);
     if (nonTerminal in rules) {
-      throw new Error(`Redefine non terminal ${nonTerminal}`);
+      throw new Error(`Пререопределение нетерминала ${nonTerminal}`);
     }
     if (!/^[a-zA-Z]+[a-zA-Z0-9]*$/.test(nonTerminal)) {
-      throw new Error(`Name non terminal '${nonTerminal}' is not allowable`);
+      throw new Error(`Не допустимое '${nonTerminal}' имя нетерминала`);
     }
     rules[nonTerminal] = [];
     ++i;
@@ -175,7 +174,7 @@ function templateTestTaskFormToTemplate(header, type, grammar, textTask, feedbac
           }
 
           if (beginAlternative === endAlternative && condition) {
-            throw new Error(`Non terminal ${nonTerminal} has empty alternative with condition construction`);
+            throw new Error(`Нетерминал ${nonTerminal} содержит пустую альтернативу вместе с конструкцией условия`);
           }
 
           let alternative = grammar.substring(beginAlternative, endAlternative);
@@ -207,7 +206,7 @@ function templateTestTaskFormToTemplate(header, type, grammar, textTask, feedbac
           let nonTerminalName = grammar.substring(beginNonTerminalName, i);
           ++i;
           if (!(nonTerminalName in rules) || nonTerminalName === nonTerminal) {
-            throw new Error(`Use not previously defined non terminal ${nonTerminalName} in the definition ${nonTerminal}`);
+            throw new Error(`Используется не объявленный ранее нетерминал ${nonTerminalName} в определении ${nonTerminal}`);
           }
         } else if (grammar[i + 1] === '|') {
           i += 2;
@@ -242,27 +241,27 @@ function checkTemplateTestTask(templateTestTask) {
 
   if (!templateTestTask.hasOwnProperty('title') || !templateTestTask.hasOwnProperty('type') || !templateTestTask.hasOwnProperty('rules')
     || !templateTestTask.hasOwnProperty('testText') || !templateTestTask.hasOwnProperty('feedbackScript')) {
-    throw new Error('Bad json data');
+    throw new Error('Некорректные данные JSON');
   }
   if (typeof templateTestTask['type'] !== 'number' ||
     templateTestTask['type'] < SHORT_ANSWER_TYPE || templateTestTask['type'] > MULTIPLE_CHOOSE_TYPE) {
-    throw new Error('Bad template test task type');
+    throw new Error('Некорректный тип тестового задания');
   }
   let nonTerminals = new Set();
   let nonTerminalsNamesRegExp = '';
   for (let nonTerminal in templateTestTask['rules']) {
     if (templateTestTask['rules'].hasOwnProperty(nonTerminal)) {
       if (!/^[a-zA-Z]+[a-zA-Z0-9]*$/.test(nonTerminal)) {
-        throw new Error(`Non terminal name has syntax error - ${nonTerminal}`);
+        throw new Error(`Имя нетерминала ${nonTerminal} не допустимо`);
       }
       if (nonTerminals.has(nonTerminal)) {
-        throw new Error(`Duplicate non terminal name - ${nonTerminal}`);
+        throw new Error(`Дублирование имя нетерминала ${nonTerminal}`);
       }
       nonTerminals.add(nonTerminal);
       let regexp = new RegExp(`^([^$]|\\$\\$|\\$(${FUNCTIONS_RE})|\\$\\{\\s*(${nonTerminalsNamesRegExp})\\s*\\})*$`);
       for (let i = 0; i < templateTestTask['rules'][nonTerminal].length; ++i) {
         if (!regexp.test(templateTestTask['rules'][nonTerminal][i])) {
-          throw new Error(`Non terminal ${nonTerminal} alternative has syntax error`);
+          throw new Error(`Альтернатива нетерминала ${nonTerminal} содержит синтаксическую ошибку`);
         }
       }
       if (nonTerminalsNamesRegExp.length > 0) {
@@ -282,7 +281,7 @@ function checkTemplateTestTask(templateTestTask) {
   let checkRegExpPattern = '^([^$]|\\$\\$|\\$\\{\\s*(' + nonTerminalNames + ')\\s*\\}+)*$';
   let checkRegExp = new RegExp(checkRegExpPattern);
   if (!checkRegExp.test(templateTestTask['testText'])) {
-    throw new Error('Test text has syntax error')
+    throw new Error('Текст задания содержит ошибку');
   }
 }
 
@@ -336,7 +335,7 @@ function replaceFunctions(production) {
       let min = +arguments[0];
       let max = +arguments[1];
       if (min > max) {
-        throw new Error('rInteger: interval is not exist');
+        throw new Error('rInteger: некорректный интервал');
       }
 
       let value = rInteger(min, max);
@@ -346,13 +345,13 @@ function replaceFunctions(production) {
       let max = +arguments[1];
       let length = +arguments[2];
       if (min > max) {
-        throw new Error('rFloat: interval is not exist');
+        throw new Error('rFloat: некорректный интервал');
       }
 
       let value = rFloat(min, max, length);
       result = result.substring(0, info[0]) + value + result.substring(info[1] + 1);
     } else {
-      throw new Error('Function ' + name + ' is not exist');
+      throw new Error('Функция ' + name + ' не существует');
     }
   }
 
@@ -418,7 +417,7 @@ function generateTestTaskFromTemplateTestTask(templateTestTask) {
 
   let testText = replaceSpecialSymbolsGIFT(removeEmptyStrings(replaceNonTerminals(templateTestTask['testText'])));
   if (testText.length === 0) {
-    throw new Error('Test task text is empty');
+    throw new Error('Текст задания пуст');
   }
 
   result['testText'] = testText;
@@ -439,34 +438,34 @@ function generateTestTaskFromTemplateTestTask(templateTestTask) {
   try {
     value = eval(script);
   } catch (error) {
-    throw new Error('Answer script error: ' + error.message);
+    throw new Error('Ошибка run-time: ' + error.message);
   }
 
   let answer = value[0];
   let falseOptions = value[1];
 
   if (typeof answer !== 'object') {
-    throw new Error('Answer does not initialized');
+    throw new Error('Верные ответы не инициализированы');
   }
   if (answer.length < 1) {
-    throw new Error('Wrong true answers number');
+    throw new Error('Не заданы верные варианты ответов');
   }
 
   answer.forEach(function (elem) {
     let type = typeof elem;
     if (type !== 'string' && type !== 'number') {
-      throw new Error('Wrong true option type');
+      throw new Error('Некорректый тип верных ответов');
     }
   });
   falseOptions.forEach(function (elem) {
     let type = typeof elem;
     if (type !== 'string' && type !== 'number') {
-      throw new Error('Wrong false option type');
+      throw new Error('Некорректый тип неверных ответов');
     }
   });
 
   if (templateTestTask['type'] === SINGLE_CHOOSE_TYPE && answer.length > 1) {
-    throw new Error('Multiple answer options');
+    throw new Error('Не единственный верный ответ');
   }
 
   if (templateTestTask['type'] === SHORT_ANSWER_TYPE) {
@@ -476,7 +475,7 @@ function generateTestTaskFromTemplateTestTask(templateTestTask) {
 
     for (let i = 0; i < answer.length; ++i) {
       if (falseOptions.indexOf(answer[i]) !== -1) {
-        throw new Error('False options contain true option');
+        throw new Error('Неверные ответы содержат вырный вариант ответа');
       }
     }
 
@@ -705,10 +704,10 @@ function templateTestFormToTemplate(header, type, templates) {
   }
 
   if (typeof header !== 'string' || typeof templates !== 'object' || typeof type !== 'number') {
-    throw new Error('Argument(s) type(s) is not current');
+    throw new Error('Некорректные типы аргументов');
   }
   if (type < STRONG_ORDER_TYPE || type > RANDOM_ORDER_TYPE) {
-    throw new Error('Type test task is not current');
+    throw new Error('Некорректный тип порядка шаблонов');
   }
 
   let result = { title: header, orderType: type, arrayTemplateTestTask: templates };
@@ -759,10 +758,10 @@ function mapFromEBNF(grammar) {
   let index = 0;
   function translateOpenBrackets(nextBracket, nextOther) {
     if (index+1 === grammar.length) {
-      throw new Error('Grammar has error');
+      throw new Error('Граммматика содержит ошибку');
     }
     if (grammar[index+1] === ')' || grammar[index+1] === ']' || grammar[index+1] === '.' || grammar[index+1] === '=') {
-      throw new Error('Grammar has error');
+      throw new Error('Граммматика содержит ошибку');
     }
     if (grammar[index+1] === '(' || grammar[index+1] === '[') {
       grammar = grammar.substring(0, index) + nextBracket + grammar.substring(index+1);
@@ -774,10 +773,10 @@ function mapFromEBNF(grammar) {
   }
   function translateCloseBrackets() {
     if (index+1 === grammar.length) {
-      throw new Error('Grammar has error');
+      throw new Error('Граммматика содержит ошибку');
     }
     if (grammar[index+1] === '(' || grammar[index+1] === '[' || grammar[index+1] === '=') {
-      throw new Error('Grammar has error');
+      throw new Error('Граммматика содержит ошибку');
     }
 
     if (grammar[index-1] !== ')' && grammar[index-1] !== ']') {
@@ -836,7 +835,7 @@ function mapFromEBNF(grammar) {
   try {
     rawMap = JSON.parse(grammar);
   } catch (exception) {
-    throw new Error('Grammar has error');
+    throw new Error('Граммматика содержит ошибку');
   }
 
   let mapGenerate = {};
@@ -844,14 +843,14 @@ function mapFromEBNF(grammar) {
     if (rawMap.hasOwnProperty(nonTerminal)) {
       let newNonTerminal = nonTerminal.trim();
       if (!/^[a-zA-Z]+[0-9a-zA-Z]*$/.test(newNonTerminal)) {
-        throw new Error(`Non terminal ${newNonTerminal} has syntax error`);
+        throw new Error(`Имя нетерминала ${newNonTerminal} не допустимое`);
       }
       if (newNonTerminal in mapGenerate) {
-        throw new Error(`Non terminal ${newNonTerminal} has redefinition`);
+        throw new Error(`Переопределение нетерминала ${newNonTerminal}`);
       }
       if (rawMap[nonTerminal].length === 1 && typeof rawMap[nonTerminal][0] === 'string'
         && rawMap[nonTerminal][0].length === 0) {
-        throw new Error(`Non terminal ${newNonTerminal} has only one alternative and she's empty`);
+        throw new Error(`Нетерминал ${newNonTerminal} имеет единственную альтернативу и она пустая`);
       }
       mapGenerate[newNonTerminal] = rawMap[nonTerminal];
     }
@@ -867,11 +866,11 @@ function checkTemplateTask(template) {
 
   if (!template.hasOwnProperty('title') || !template.hasOwnProperty('grammar')
     || !template.hasOwnProperty('textTask')) {
-    throw new Error('Bad json data');
+    throw new Error('Некорректный JSON');
   }
   if (typeof template['title'] !== 'string' || typeof template['grammar'] !== 'string'
     || typeof template['textTask'] !== 'string') {
-    throw new Error('Bad template property types');
+    throw new Error('Некорректный тип свойств шаблона');
   }
 
   let mapGenerate = mapFromEBNF(template['grammar']);
@@ -881,10 +880,10 @@ function checkTemplateTask(template) {
   for (let nonTerminal in mapGenerate) {
     if (mapGenerate.hasOwnProperty(nonTerminal)) {
       if (!/^[a-zA-Z]+[a-zA-Z0-9]*$/.test(nonTerminal)) {
-        throw new Error(`Non terminal name has syntax error - ${nonTerminal}`);
+        throw new Error(`Имя нетемринала ${nonTerminal} не допустимо`);
       }
       if (nonTerminals.has(nonTerminal)) {
-        throw new Error(`Duplicate non terminal name - ${nonTerminal}`);
+        throw new Error(`Переопределение нетерминала ${nonTerminal}`);
       }
 
       nonTerminals.add(nonTerminal);
@@ -892,7 +891,7 @@ function checkTemplateTask(template) {
       function checkAlternatives(content) {
         if (typeof content === 'string') {
           if (!regexp.test(content)) {
-            throw new Error(`Non terminal ${nonTerminal} alternative has syntax error`);
+            throw new Error(`Альтернатива нетермниала ${nonTerminal} содержит синтаксическую ошибку`);
           }
         } else {
           let numberEmptyAlternatives = 0;
@@ -903,7 +902,7 @@ function checkTemplateTask(template) {
             checkAlternatives(content[i]);
           }
           if (numberEmptyAlternatives > 1) {
-            throw new Error(`Non terminal ${nonTerminal} has more then one empty alternative`);
+            throw new Error(`Нетерминал ${nonTerminal} содержит более одной пустой альтернативы`);
           }
         }
       }
@@ -926,7 +925,7 @@ function checkTemplateTask(template) {
   let checkRegExpPattern = '^([^$]|\\$\\$|\\$\\{\\s*(' + nonTerminalNames + ')\\s*\\}+)*$';
   let checkRegExp = new RegExp(checkRegExpPattern);
   if (!checkRegExp.test(template['textTask'])) {
-    throw new Error('Test text has syntax error')
+    throw new Error('Текст задания содержит ошибку');
   }
 }
 
@@ -1000,10 +999,10 @@ function templateGroupTaskFormToTemplate(header, type, templates) {
   }
 
   if (typeof header !== 'string' || typeof templates !== 'object' || typeof type !== 'number') {
-    throw new Error('Argument(s) type(s) is not current');
+    throw new Error('Некорректый тип аргументов');
   }
   if (type < STRONG_ORDER_TYPE || type > RANDOM_ORDER_TYPE) {
-    throw new Error('Type test task is not current');
+    throw new Error('Некорректный тип порядка шаблонов');
   }
 
   let result = { title: header, orderType: type, arrayTemplateTask: templates };
