@@ -133,7 +133,7 @@ module.exports = class TemplateAction {
         }
       } catch (err) {
         this.logining.error(`Generate (id=${templateId}, number=${number}, extension=${extension}) error: ${err.message}`);
-        callbackNegative();
+        callbackNegative(err.message);
       }
     }, callbackNegative);
   }

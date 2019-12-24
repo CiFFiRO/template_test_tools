@@ -476,8 +476,8 @@ for (let indexTypeTemplate=0;indexTypeTemplate<urls.length;++indexTypeTemplate) 
               archive.append(content[i][1], {name: content[i][0]});
             }
             archive.finalize();
-          }, () => {
-            response.send('Упс, что-то пошло не так...');
+          }, message => {
+            response.send('Ошибка в скрипте обратной связи: ' + message);
           });
       },
       () => {
