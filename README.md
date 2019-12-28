@@ -36,7 +36,7 @@ Template Test Tools - это совокупность ПО состоящая и
 5. Заполнить все пустые поля в конфигурационном файле ./server/config.ini;
 6. Открыть в MS VS 2019 решение ./desktop_application/TemplateEditor.sln;
 7. Собрать проект (Ctrl+B);
-8. Запустить скрипт ...
+8. Выполнить скрипт ./generator/move_generator.js.
 --------------
 ## Копирайт
 Лицензия: GPL 2.0
