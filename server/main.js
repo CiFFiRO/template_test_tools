@@ -321,7 +321,6 @@ let generateContentByIndex = [
     return generator.translateGroupTaskToTXT(generator.generateGroupTaskFromTemplateGroupTask(template));
   }
 ];
-let contentExtensionByIndex = ['gift', 'gift', 'txt', 'txt'];
 
 for (let indexTypeTemplate=0;indexTypeTemplate<urls.length;++indexTypeTemplate) {
   app.post(urls[indexTypeTemplate][0], (request, response) => {
@@ -467,7 +466,7 @@ for (let indexTypeTemplate=0;indexTypeTemplate<urls.length;++indexTypeTemplate) 
 
     sessionValidCheck(request.cookies.sessionCode,
       userId => {
-        templateAction.generate(userId, templateId, typeByIndex[indexTypeTemplate], number, contentExtensionByIndex[indexTypeTemplate],
+        templateAction.generate(userId, templateId, typeByIndex[indexTypeTemplate], number,
           generateContentByIndex[indexTypeTemplate], (content) => {
             const archive = archiver('zip');
             response.attachment('content.zip');

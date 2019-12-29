@@ -111,8 +111,7 @@ module.exports = class TemplateAction {
       });
   }
 
-  generate(userId, templateId, templateType, number, extension, callbackTemplateToContent,
-           callbackPositive, callbackNegative) {
+  generate(userId, templateId, templateType, number, callbackTemplateToContent, callbackPositive, callbackNegative) {
     this.download(userId, templateId, templateType, results => {
       try {
         if (results[0].length === 1) {
@@ -125,14 +124,13 @@ module.exports = class TemplateAction {
             } else {
               fileName += i;
             }
-            fileName += '.' + extension;
+            fileName += '.txt';
 
             content.push([fileName, callbackTemplateToContent(template)]);
           }
           callbackPositive(content);
         }
       } catch (err) {
-        this.logining.error(`Generate (id=${templateId}, number=${number}, extension=${extension}) error: ${err.message}`);
         callbackNegative(err.message);
       }
     }, callbackNegative);
