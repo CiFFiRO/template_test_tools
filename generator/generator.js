@@ -415,7 +415,17 @@ function generateTestTaskFromTemplateTestTask(templateTestTask) {
     return result;
   }
 
-  let testText = replaceSpecialSymbolsGIFT(removeEmptyStrings(replaceNonTerminals(templateTestTask['testText'])));
+  function replaceTagHTML(text) {
+    let result = text;
+    let regexp = new RegExp('&', 'g');
+    result = result.replace(regexp, '&amp;');
+    regexp = new RegExp('<', 'g');
+    result = result.replace(regexp, '&lt;');
+
+    return result;
+  }
+
+  let testText = replaceTagHTML(replaceSpecialSymbolsGIFT(removeEmptyStrings(replaceNonTerminals(templateTestTask['testText']))));
   if (testText.length === 0) {
     throw new Error('Текст задания пуст');
   }
@@ -468,6 +478,18 @@ function generateTestTaskFromTemplateTestTask(templateTestTask) {
     throw new Error('Не единственный верный ответ');
   }
 
+  let filter = replaceSpecialSymbolsGIFT;
+  if (templateTestTask['type'] !== SHORT_ANSWER_TYPE) {
+    filter = text => {return replaceTagHTML(replaceSpecialSymbolsGIFT(text));};
+  }
+
+  for (let i=0;i<answer.length;++i) {
+    answer[i] = filter(answer[i]+'');
+  }
+  for (let i=0;i<falseOptions.length;++i) {
+    falseOptions[i] = filter(falseOptions[i]+'');
+  }
+
   if (templateTestTask['type'] === SHORT_ANSWER_TYPE) {
     result['answers'] = answer;
   } else {
@@ -477,6 +499,10 @@ function generateTestTaskFromTemplateTestTask(templateTestTask) {
       if (falseOptions.indexOf(answer[i]) !== -1) {
         throw new Error('Неверные ответы содержат вырный вариант ответа');
       }
+    }
+
+    if (templateTestTask['type'] === MULTIPLE_CHOOSE_TYPE && answer.length > 10) {
+      throw new Error('При множественном выборе допускается не более 10 верных вариантов ответа');
     }
 
     result['falseOptions'] = falseOptions;
@@ -513,11 +539,29 @@ function translateTestTaskToGIFT(testTask) {
     }
   } else {
     let options = getOptions(testTask['trueOptions'], testTask['falseOptions']);
+    const scoreStep = 10;
+    const scoreMax = 100;
+    let score = 0;
+    let trueOptionIndex = 0;
     for (let optionIndex = 0; optionIndex < options.length; ++optionIndex) {
-      if (options[optionIndex][0]) {
-        result += '=';
+      if (testTask['type'] === SINGLE_CHOOSE_TYPE) {
+        if (options[optionIndex][0]) {
+          result += '=';
+        } else {
+          result += '~';
+        }
       } else {
-        result += '~';
+        if (options[optionIndex][0]) {
+          ++trueOptionIndex;
+          if (trueOptionIndex === testTask['trueOptions'].length) {
+            result += `~%${scoreMax-score}%`;
+          } else {
+            score += scoreStep;
+            result += `~%${scoreStep}%`;
+          }
+        } else {
+          result += '~%-100%';
+        }
       }
       result += options[optionIndex][1] + '\n';
     }
@@ -682,11 +726,29 @@ function translateTestToGIFT(test) {
       }
     } else {
       let options = getOptions(test[testIndex]['trueOptions'], test[testIndex]['falseOptions']);
+      const scoreStep = 10;
+      const scoreMax = 100;
+      let score = 0;
+      let trueOptionIndex = 0;
       for (let optionIndex = 0; optionIndex < options.length; ++optionIndex) {
-        if (options[optionIndex][0]) {
-          result += '=';
+        if (test[testIndex]['type'] === SINGLE_CHOOSE_TYPE) {
+          if (options[optionIndex][0]) {
+            result += '=';
+          } else {
+            result += '~';
+          }
         } else {
-          result += '~';
+          if (options[optionIndex][0]) {
+            ++trueOptionIndex;
+            if (trueOptionIndex === test[testIndex]['trueOptions'].length) {
+              result += `~%${scoreMax-score}%`;
+            } else {
+              score += scoreStep;
+              result += `~%${scoreStep}%`;
+            }
+          } else {
+            result += '~%-100%';
+          }
         }
         result += options[optionIndex][1] + '\n';
       }
