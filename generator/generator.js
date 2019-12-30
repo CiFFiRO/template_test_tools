@@ -415,17 +415,46 @@ function generateTestTaskFromTemplateTestTask(templateTestTask) {
     return result;
   }
 
-  function replaceTagHTML(text) {
-    let result = text;
+  function editForMoodleView(text) {
+    let copy = text;
     let regexp = new RegExp('&', 'g');
-    result = result.replace(regexp, '&amp;');
+    copy = copy.replace(regexp, '&amp;');
     regexp = new RegExp('<', 'g');
-    result = result.replace(regexp, '&lt;');
+    copy = copy.replace(regexp, '&lt;');
+    regexp = new RegExp('\n', 'g');
+    copy = copy.replace(regexp, '<br/>\n');
+    regexp = new RegExp('\t', 'g');
+    copy = copy.replace(regexp, '&ensp;');
+
+    let result = '';
+    let extraSpace = false;
+    for (let i = 0; i < copy.length;) {
+      if (copy[i] === '\n') {
+        result += copy[i];
+        ++i;
+        while (copy[i] === ' ') {
+          result += '&nbsp;';
+          ++i;
+        }
+      } else if (copy[i] === ' ' && !extraSpace) {
+        result += ' ';
+        extraSpace = true;
+        ++i;
+      } else if (copy[i] === ' ' && extraSpace) {
+        result += '&nbsp;';
+        ++i;
+      } else {
+        result += copy[i];
+        ++i;
+        extraSpace = false;
+      }
+    }
+
 
     return result;
   }
 
-  let testText = replaceTagHTML(replaceSpecialSymbolsGIFT(removeEmptyStrings(replaceNonTerminals(templateTestTask['testText']))));
+  let testText = editForMoodleView(replaceSpecialSymbolsGIFT(removeEmptyStrings(replaceNonTerminals(templateTestTask['testText']))));
   if (testText.length === 0) {
     throw new Error('Текст задания пуст');
   }
@@ -480,7 +509,7 @@ function generateTestTaskFromTemplateTestTask(templateTestTask) {
 
   let filter = replaceSpecialSymbolsGIFT;
   if (templateTestTask['type'] !== SHORT_ANSWER_TYPE) {
-    filter = text => {return replaceTagHTML(replaceSpecialSymbolsGIFT(text));};
+    filter = text => {return editForMoodleView(replaceSpecialSymbolsGIFT(text));};
   }
 
   for (let i=0;i<answer.length;++i) {
