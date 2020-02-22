@@ -100,7 +100,7 @@ module.exports = class TemplateAction {
   viewList(userId, pageId, templateType, callbackPositive, callbackNegative) {
     let tableName = this.tableNameByTemplateType(templateType);
     let offset = pageId * this.templatesPerPage;
-    this.connection.query("SELECT * FROM `server`.`" + tableName + "` WHERE `" + tableName + "`.`user_id`=? LIMIT " +
+    this.connection.query("SELECT * FROM `server`.`" + tableName + "` WHERE `" + tableName + "`.`user_id`=? ORDER BY `" + tableName + "`.`id` desc LIMIT " +
       this.templatesPerPage + " OFFSET " + offset, [userId])
       .then(results => {
         callbackPositive(results);
