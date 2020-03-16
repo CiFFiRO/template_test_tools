@@ -91,7 +91,7 @@ app.post("/registration", (request, response) => {
               [time, confirmCode, 0, insertId])
               .then(() => {
                 let mailOptions = {
-                  from: 'templatetestportal@mail.ru',
+                  from: config.Mail.User,
                   to: request.body.email,
                   subject: 'Регистрация на портале TemplateTest',
                   text: 'Здравствуйте!\nВаш код подтверждения регистрации - ' +  confirmCode + '.\nДействителен сутки.' +
